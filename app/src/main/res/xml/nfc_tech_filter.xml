@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Tech list for NFC tag dispatch. ISO 15693 (NfcV) is the format used by
+  livestock ear-tag transponders; Ndef/NfcA are included so the demo also works
+  with cheap NTAG213 sticker tags.
+-->
+<resources>
+    <tech-list>
+        <tech>android.nfc.tech.NfcV</tech>
+    </tech-list>
+    <tech-list>
+        <tech>android.nfc.tech.Ndef</tech>
+    </tech-list>
+    <tech-list>
+        <tech>android.nfc.tech.NfcA</tech>
+    </tech-list>
+</resources>

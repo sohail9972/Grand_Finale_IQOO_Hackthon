@@ -1,0 +1,53 @@
+# --- Gradle ---------------------------------------------------------------
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# --- Local machine config -------------------------------------------------
+local.properties
+
+# --- Android Studio / IntelliJ -------------------------------------------
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# --- Kotlin compiler caches ----------------------------------------------
+.kotlin/
+
+# --- Build outputs --------------------------------------------------------
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+output.json
+release/
+
+# --- JVM diagnostics ------------------------------------------------------
+# Heap dumps are gigabytes and must never enter git history.
+*.hprof
+*.hprof.*
+hs_err_pid*.log
+replay_pid*.log
+
+# --- Runtime logs ---------------------------------------------------------
+# adb logcat captures and build logs.
+*.log
+app_logs.txt
+logcat*.txt
+
+# --- Large on-device model payloads --------------------------------------
+# Model binaries (Gemma-3 .task, IndicTrans2 .onnx, IndicConformer .onnx) are
+# side-loaded, never committed. The sherpa-onnx AAR in app/libs IS committed
+# on purpose: it is not published to Maven Central, so without it the project
+# cannot build from a fresh clone.
+app/src/main/assets/models/
+app/src/main/assets/*.task
+app/src/main/assets/*.onnx
+
+# --- OS noise -------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini

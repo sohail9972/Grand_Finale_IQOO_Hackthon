@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Mirror of the Compose colour palette. Kept in XML only for the pre-Compose
+  window background and the launcher icon. ui/theme/Color.kt is the single
+  source of truth for the app UI.
+-->
+<resources>
+    <color name="ahb_background">#0E141E</color>
+    <color name="ahb_card">#182230</color>
+    <color name="ahb_accent">#1FC8A8</color>
+    <color name="ic_launcher_background">#0E141E</color>
+</resources>

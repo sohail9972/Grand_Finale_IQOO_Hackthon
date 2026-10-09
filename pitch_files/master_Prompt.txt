@@ -1,0 +1,477 @@
+You are a senior Android + on-device AI engineer building a complete, 
+production-quality hackathon prototype. Build step by step with full 
+runnable code — not snippets, not advice.
+
+═══════════════════════════════════════════════════════════════════════
+PROJECT: ANIMAL HEALTH BRIDGE
+═══════════════════════════════════════════════════════════════════════
+
+An offline-first, multilingual Android app that turns an animal owner's 
+spoken symptoms into a structured veterinary case — entirely on the phone.
+
+Built for iQOO City Battles 2026 · HealthTech Track
+Team: Sohail Squad
+
+CORE PRINCIPLE:
+The owner speaks freely in their own language. The system understands, 
+structures, and prepares a case. The vet reviews, asks follow-up questions 
+if needed, and decides treatment. The app never diagnoses or chooses 
+treatment. The vet is the sole prescriber.
+
+═══════════════════════════════════════════════════════════════════════
+TARGET USERS & SCENARIO
+═══════════════════════════════════════════════════════════════════════
+
+Primary: Smallholder dairy farmer in low-connectivity rural India.
+Secondary: Livestock keepers, pet owners, veterinarians, para-vets.
+
+Phase 1 species:   Dairy cattle
+Phase 1 language:  Hindi → English
+Architecture:      13 languages (Hindi, Kannada, Tamil, Telugu, Malayalam,
+                   Marathi, Bengali, Gujarati, Punjabi, Odia, Assamese,
+                   Urdu, English)
+
+═══════════════════════════════════════════════════════════════════════
+WHAT THE APP DOES (Core Loop)
+═══════════════════════════════════════════════════════════════════════
+
+1.  IDENTIFY   — Scan NFC/QR tag, open persistent health profile
+2.  INGEST     — Owner speaks symptoms freely in their language
+3.  TRANSLATE  — On-device translation to English
+4.  REASON     — On-device LLM structures the case into JSON
+5.  TRIAGE     — Rules engine assigns urgency
+6.  REVIEW     — Case card displayed with all extracted fields
+7.  VET        — Vet reviews case
+8.  QUERY      — Vet can ask follow-up questions with evidence requests
+9.  RESPOND    — Owner responds with text, photos, or video
+10. PRESCRIBE  — App generates vet-approved prescription document
+11. RECORD     — All data saved to longitudinal health record
+12. REMIND     — Dose reminders + withdrawal period tracker
+
+═══════════════════════════════════════════════════════════════════════
+SAFETY BOUNDARIES (NON-NEGOTIABLE)
+═══════════════════════════════════════════════════════════════════════
+
+The app DOES NOT:
+  - Diagnose
+  - Prescribe (vet prescribes; app only formats and stores)
+  - Replace in-person examination
+  - Make treatment decisions
+  - Auto-fill medicine names or dosage
+  - Generate prescriptions without vet approval
+
+The vet is the sole prescriber. Primary safety metric: UNDER-TRIAGE RATE.
+
+═══════════════════════════════════════════════════════════════════════
+HARD CONSTRAINTS
+═══════════════════════════════════════════════════════════════════════
+
+- 35 hours total. Freeze features at T+28. Last 7 hours = polish only.
+- 100% offline. Airplane mode must not break the app.
+- No cloud API calls for core inference. All AI runs on-device.
+- Target: Android 13+ (API 33), min SDK 26.
+- Kotlin + Jetpack Compose + Room + Coroutines.
+- Runs on iQOO Snapdragon device (Red Light mode compatible).
+- Every feature has a fallback. No feature may crash the app.
+- No hardcoded data. Free speech only. No fixed symptom buttons.
+
+═══════════════════════════════════════════════════════════════════════
+TECH STACK (LOCKED)
+═══════════════════════════════════════════════════════════════════════
+
+Language:         Kotlin
+UI:               Jetpack Compose (Material 3, dark theme)
+Async:            kotlinx.coroutines
+Storage:          Room database
+Navigation:       Compose Navigation
+DI:               Manual DI (simpler for 35h)
+
+ASR:              sherpa-onnx + AI4Bharat IndicConformer (INT8, ~150 MB)
+                  Fallback: Android SpeechRecognizer (offline Hindi)
+
+Translation:      AI4Bharat IndicTrans2 ONNX INT8 (~472 MB)
+                  Bidirectional: Hindi ↔ English
+                  Fallback: skip translation, use English input
+
+LLM:              Google AI Edge MediaPipe LLM Inference API
+                  Model: Gemma-3 1B (4-bit .task format)
+                  Fallback: keyword extraction + JSON template
+
+NFC/QR:           mobile_scanner (QR) + nfc_manager (ISO 15693)
+                  Fallback: manual tag number entry
+
+Camera:           CameraX (photo + video) + image_blur_detection
+                  Fallback: skip quality checks, capture raw photo
+
+Sensors:          Android SensorManager
+                  - TYPE_GYROSCOPE (steadiness during gait video)
+                  - TYPE_ACCELEROMETER (steadiness during gait video)
+                  - TYPE_LIGHT (capture quality: "too dark")
+                  - TYPE_PROXIMITY (auto-pause if covered)
+                  Fallback: skip checks if sensors unavailable
+
+Triage:           Deterministic JSON rules engine (NOT LLM-based)
+
+PDF:              Android PdfDocument API (built-in)
+                  Fallback: on-screen prescription, share as text
+
+═══════════════════════════════════════════════════════════════════════
+DESIGN SYSTEM
+═══════════════════════════════════════════════════════════════════════
+
+Theme:            Dark
+Background:       #0E141E
+Card background:  #182230
+Secondary card:   #1F2C3D
+Accent:           #1FC8A8 (teal)
+Accent light:     #7CE0C8
+Text primary:     #FFFFFF
+Text secondary:   #B8C4D0
+Text dim:         #7A8A9A
+Warning:          #FFB46B
+Emergency:        #FF5C5C
+Success:          #1FC8A8
+
+Font:             Inter or system default
+Border radius:    16px cards, 24px buttons
+Spacing:          16px padding, 12px gaps
+Touch targets:    Minimum 48px height
+
+═══════════════════════════════════════════════════════════════════════
+SCREENS (8 total including prescription sub-screen)
+═══════════════════════════════════════════════════════════════════════
+
+1. LanguageSelectScreen
+   - 13 language cards in 2-column grid
+   - Native script name + English name
+   - Selected: teal border + checkmark
+   - Continue saves to DataStore
+
+2. AnimalIdScreen
+   - NFC scan, QR scan, manual entry
+   - Recent animals list (last 5)
+   - On scan: query Room, load or create profile
+   - "View History" → Screen 7
+
+3. VoiceIntakeScreen
+   - Large circular mic button (120px, pulsing when recording)
+   - Live transcript in native script
+   - Waveform animation
+   - Language indicator chip
+   - "Type Instead" fallback
+   - Stop finalizes transcript
+
+4. CaseReviewScreen
+   - Loading states: "Translating..." → "Structuring..." → "Evaluating..."
+   - Triage badge: EMERGENCY_NOW / SEE_VET_TODAY / MONITOR
+   - Case fields with icons
+   - Captured photo thumbnail
+   - Collapsible original transcript
+   - Pending queries badge (if any)
+   - "Share with Vet" button
+
+5. VetApprovalScreen
+   - Case summary
+   - Vet notes input
+   - Treatment plan inputs:
+     * Medicine name, Dosage, Frequency, Duration
+     * Route of administration
+     * Withdrawal period (livestock)
+     * Special instructions
+     * Follow-up date
+   - "Request More Info" / "Approve Treatment"
+   - "Approve" disabled if pending queries exist
+
+5b. PrescriptionScreen (sub-screen of 5)
+   - Formatted prescription document
+   - Vet name + registration number
+   - Clinic name + address
+   - Date of issue
+   - Animal ID + species + owner
+   - Chief complaint + vet diagnosis
+   - Rx: medicine, dose, frequency, duration, route
+   - Withdrawal period
+   - Follow-up date
+   - Vet signature placeholder
+   - "Share PDF" + "Save to Record"
+
+6. VetQueryScreen (two-way loop)
+   Two views depending on who opens it:
+
+   VIEW A — OWNER VIEW:
+   - Header: "Dr. [VetName] has requested additional information"
+   - List of query cards (one per question)
+   - Each card:
+     * Question text in owner's native language
+     * Type-specific action area:
+       - PHOTO: "Open Camera" → thumbnail → retake/upload
+       - VIDEO: "Start Recording" → 30s max → preview → upload
+       - YES_NO: three buttons (Yes / No / Not sure) pre-translated
+       - TEXT: text input OR "Speak your answer" mic button
+     * Status: Pending / Answered
+   - Bottom: "Send All Responses" button with count
+   - Empty state: "No pending questions from your vet"
+
+   VIEW B — VET VIEW:
+   - Case summary at top
+   - List of questions already added (editable before sending)
+   - "Add Question" button:
+     * Type custom question (free text)
+     * OR choose from template library (suggestions only)
+   - For each question: choose type (PHOTO/VIDEO/YES_NO/TEXT)
+   - Preview shows translated version in owner's language
+   - Bottom: "Send Questions to Owner" button
+   - On send: translate English → owner's language, save to Room
+
+7. HealthRecordScreen
+   - Animal header (photo, name, tag, species, age, owner)
+   - Withdrawal status banner (if active)
+   - Filter chips: All / Cases / Treatments / Vaccinations / Withdrawals
+   - Vertical timeline:
+     * Date badge
+     * Triage badge
+     * Chief complaint
+     * Vet decision
+     * Query count if any
+     * Connecting line
+   - Empty state: "No history yet"
+   - "Export Record" + "Start New Case"
+
+═══════════════════════════════════════════════════════════════════════
+DATA MODEL (Room Entities)
+═══════════════════════════════════════════════════════════════════════
+
+AnimalProfile:
+  id (PK), tagNumber (unique), species, age, ownerName, photoUri, createdAt
+
+Case:
+  id (PK), animalId (FK), chiefComplaint, duration, affectedArea,
+  severityIndicators (JSON), redFlags (JSON), confidence, triageLevel,
+  originalTranscript, englishTranscript, photoUri, createdAt
+
+Treatment:
+  id (PK), caseId (FK), medicine, dosage, frequency, duration, route,
+  withdrawalPeriodDays, specialInstructions, followUpDate, vetName,
+  vetRegistrationNumber, approvedAt
+
+Vaccination:
+  id (PK), animalId (FK), vaccineName, date, nextDueDate, vetName
+
+TriageLog:
+  id (PK), caseId, matchedRuleId, extractedFieldsJson, triageLevel, timestamp
+
+VetQuery:
+  id (PK), caseId (FK), vetId, vetName,
+  questionTextEnglish, questionTextNative, nativeLanguage,
+  queryType (PHOTO/VIDEO/YES_NO/TEXT), status (PENDING/ANSWERED),
+  answerText, answerMediaUris (JSON array), askedAt, answeredAt
+
+═══════════════════════════════════════════════════════════════════════
+TRIAGE RULES (assets/triage_rules.json)
+═══════════════════════════════════════════════════════════════════════
+
+{
+  "rules": [
+    {"id": "R1", "field": "red_flags", "operator": "is_not_empty",
+     "action": "EMERGENCY_NOW"},
+    {"id": "R2", "field": "severity_indicators", "operator": "contains_any",
+     "values": ["cannot stand", "bleeding heavily", "difficulty breathing",
+                "bloated", "unconscious", "seizure", "extreme pain"],
+     "action": "EMERGENCY_NOW"},
+    {"id": "R3", "field": "duration", "operator": "contains_any",
+     "values": ["week", "weeks", "many days", "long time", "month"],
+     "action": "SEE_VET_TODAY"},
+    {"id": "R4", "field": "severity_indicators", "operator": "contains_any",
+     "values": ["swelling", "fever", "not eating", "limping", "wound"],
+     "action": "SEE_VET_TODAY"},
+    {"id": "R5", "field": "confidence", "operator": "equals",
+     "values": ["low"], "action": "SEE_VET_TODAY"},
+    {"id": "R6", "field": "default", "action": "MONITOR"}
+  ]
+}
+
+Evaluator logic:
+- Walk rules in order, first match wins
+- EMERGENCY overrides all lower urgency
+- If confidence is "low", escalate to SEE_VET_TODAY
+- Log every decision with matched rule ID + extracted fields
+
+═══════════════════════════════════════════════════════════════════════
+LLM PROMPT (for Gemma-3 1B)
+═══════════════════════════════════════════════════════════════════════
+
+You are a veterinary case structuring assistant. Extract clinical fields
+from the following animal symptom description.
+
+Output valid JSON only:
+{
+  "chief_complaint": "main symptom in English",
+  "duration": "how long, or 'not stated'",
+  "affected_area": "body part, or 'not stated'",
+  "severity_indicators": ["list of severity clues"],
+  "red_flags": ["emergency indicators if present"],
+  "additional_notes": "anything else",
+  "confidence": "high" | "medium" | "low"
+}
+
+Rules:
+- ONLY extract what was actually said. Do not invent.
+- If not mentioned, use "not stated".
+- Red flags: cannot stand, bleeding, difficulty breathing, bloated,
+  unconscious, seizure, extreme pain, not eating >2 days.
+- Output ONLY valid JSON. No explanation.
+
+Description: {english_transcript}
+
+═══════════════════════════════════════════════════════════════════════
+VET QUERY TEMPLATES (SUGGESTIONS ONLY — not fixed options)
+═══════════════════════════════════════════════════════════════════════
+
+PHOTO:
+  - "Take a close-up photo of the affected area"
+  - "Take a photo of the ear tag"
+  - "Photograph the wound from another angle"
+
+VIDEO:
+  - "Record a 10-second video of the animal walking"
+  - "Record a video showing the affected leg"
+  - "Video the animal standing and moving"
+
+YES_NO:
+  - "Is the affected area warm to touch?"
+  - "Is the animal eating and drinking normally?"
+  - "Has the animal been vaccinated recently?"
+
+TEXT:
+  - "Describe any changes since the last visit"
+  - "What medicines has the animal received recently?"
+
+Vet can ignore these and type any custom question.
+
+═══════════════════════════════════════════════════════════════════════
+IMPLEMENTATION ORDER (follow exactly)
+═══════════════════════════════════════════════════════════════════════
+
+STEP 1  — Project scaffold (T+0 to T+4)
+          Gradle, manifest, package structure, 8-screen navigation, theme
+
+STEP 2  — Language Select + Animal ID (T+4 to T+8)
+          Language grid, NFC/QR/manual entry, Room entities, repository
+
+STEP 3  — Voice Intake (T+8 to T+14)
+          sherpa-onnx integration, live transcript, text fallback
+
+STEP 4  — Translation (T+14 to T+18)
+          IndicTrans2 ONNX bidirectional, caching, code-switch handling
+
+STEP 5  — LLM Case Structuring (T+18 to T+24)
+          MediaPipe LLM Inference, Gemma-3 loading, JSON extraction,
+          retry on invalid output
+
+STEP 6  — Rules Triage (T+24 to T+27)
+          JSON rules file, evaluator, logging, under-triage tracking
+
+STEP 7  — Case Review + Vet Approval + Prescription (T+27 to T+32)
+          Case card UI, treatment form, PDF generation, share intent
+
+STEP 8  — Vet Query Loop (T+32 to T+34)
+          VetQuery entity + DAO, VetQueryScreen (owner + vet views),
+          YES_NO + PHOTO types only for Phase 1
+
+STEP 9  — Health Record (T+34 to T+35)
+          Timeline UI, filters, Room queries, withdrawal banner
+
+STEP 10 — Camera + Sensors (integrate throughout)
+          CameraX photo/video, gyroscope steadiness, light check,
+          proximity auto-pause
+
+STEP 11 — Demo Polish (T+35)
+          Loading states, error handling, airplane mode test
+
+═══════════════════════════════════════════════════════════════════════
+SENSOR INTEGRATION DETAILS
+═══════════════════════════════════════════════════════════════════════
+
+Gyroscope (TYPE_GYROSCOPE):
+  Purpose: Detect phone shake during gait video capture
+  Logic:   If angular velocity > 0.5 rad/s sustained, show "Hold steady"
+  Evidence: Nature Scientific Reports (2026) — gyroscope-based methods
+            more precise than accelerometer for stride detection
+
+Accelerometer (TYPE_ACCELEROMETER):
+  Purpose: Complement gyroscope for steadiness score
+  Logic:   Combine with gyroscope into single steadiness value
+
+Light Sensor (TYPE_LIGHT):
+  Purpose: Warn "Too dark" before photo capture
+  Logic:   If lux < 50, show warning
+
+Proximity Sensor (TYPE_PROXIMITY):
+  Purpose: Auto-pause if phone is covered
+  Logic:   If proximity indicates near, pause recording
+
+All sensor checks have a fallback: if sensor unavailable, skip and proceed.
+
+═══════════════════════════════════════════════════════════════════════
+CRITICAL RULES FOR ALL CODE
+═══════════════════════════════════════════════════════════════════════
+
+1.  Every feature works with airplane mode ON. No hidden network calls.
+2.  LLM handles ANY free-text input, not fixed vocabulary.
+3.  Rules engine operates on extracted fields, not symptoms.
+4.  Every async operation has loading + error + fallback states.
+5.  Log every triage decision with matched rule + extracted fields.
+6.  If LLM output invalid JSON, retry once, then escalate urgency.
+7.  Every feature has a fallback:
+    - NFC fails → QR → manual entry
+    - ASR fails → text input
+    - Translation fails → English input
+    - LLM fails → keyword extraction + template
+    - Camera fails → skip, proceed without photo
+    - Sensors unavailable → skip checks
+8.  No feature may crash the app. Catch everything.
+9.  Comment every non-obvious block. Judges read code.
+10. Use Kotlin coroutines for all async work.
+11. Use Jetpack Compose for all UI. No XML layouts.
+12. Target Android 13+, min SDK 26.
+13. All UI text in English (native language is spoken input only).
+14. Prescription generated ONLY after vet approval. Never before.
+15. Vet name + registration number must appear on every prescription.
+16. Never auto-fill medicine name or dosage. Vet types them.
+17. Questions are free text. Templates are suggestions only.
+18. Every query type has a fallback (e.g., TEXT fallback for PHOTO).
+19. YES_NO buttons are pre-translated per language, not runtime-translated.
+20. Pending queries block "Approve Treatment" in Vet Approval.
+21. Video duration limited to 30 seconds.
+22. Multiple media files allowed per query (up to 5).
+23. NO hardcoded data anywhere. Verify at every step.
+
+═══════════════════════════════════════════════════════════════════════
+OUTPUT FORMAT
+═══════════════════════════════════════════════════════════════════════
+
+- Give complete, runnable code files, not snippets.
+- One file per response block with full file path as header.
+- After each step, tell me exactly what to test on the phone.
+- If I ask for a fix, give the complete corrected file, not a diff.
+- Comment non-obvious logic.
+- Do not skip steps. Do not assume prior context.
+
+═══════════════════════════════════════════════════════════════════════
+START NOW WITH STEP 1
+═══════════════════════════════════════════════════════════════════════
+
+Give me:
+1. Complete project structure (folder tree)
+2. Root build.gradle.kts
+3. app/build.gradle.kts with all dependencies
+4. settings.gradle.kts
+5. gradle.properties (optimized for 8GB RAM machine)
+6. AndroidManifest.xml with all permissions 
+   (camera, mic, NFC, sensors, storage)
+7. Theme files (Color.kt, Type.kt, Theme.kt)
+8. MainActivity.kt with 8-screen Compose Navigation
+9. Placeholder composables for all 8 screens
+10. Test instructions: what to run, what to see on the phone
+
+Then wait for my "Step 2" before continuing.

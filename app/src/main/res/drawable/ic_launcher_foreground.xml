@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Launcher foreground: a speech bubble (the owner's spoken symptoms) carrying a
+  medical cross (the veterinary decision). Pure vector, so there is no binary
+  asset to keep in sync.
+  Adaptive-icon foregrounds are 108x108dp; the inner 72x72dp is the safe zone.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#1FC8A8"
+        android:pathData="M34,30 h40 a8,8 0 0 1 8,8 v24 a8,8 0 0 1 -8,8 h-22 l-12,10 v-10 h-6 a8,8 0 0 1 -8,-8 v-24 a8,8 0 0 1 8,-8 z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M50,38 h8 v8 h8 v8 h-8 v8 h-8 v-8 h-8 v-8 h8 z" />
+</vector>

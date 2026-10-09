@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  All user-visible UI text lives here.
+
+  IMPORTANT: the app UI is English-only by design (spec rule 13). The owner's
+  native language is a SPOKEN input channel, not a UI language. Nothing in this
+  file should ever be machine-translated at runtime.
+-->
+<resources>
+    <string name="app_name">Animal Health Bridge</string>
+
+    <!-- Screen titles -->
+    <string name="screen_language_title">Choose language</string>
+    <string name="screen_animal_id_title">Identify animal</string>
+    <string name="screen_voice_intake_title">Describe symptoms</string>
+    <string name="screen_case_review_title">Case review</string>
+    <string name="screen_vet_approval_title">Vet approval</string>
+    <string name="screen_prescription_title">Prescription</string>
+    <string name="screen_vet_query_title">Vet questions</string>
+    <string name="screen_health_record_title">Health record</string>
+
+    <!-- Screen subtitles -->
+    <string name="screen_language_subtitle">Pick the language you speak. You can change this later.</string>
+    <string name="screen_animal_id_subtitle">Scan the ear tag, scan a QR code, or type the tag number.</string>
+    <string name="screen_voice_intake_subtitle">Speak freely about what you are seeing. There are no wrong words.</string>
+    <string name="screen_case_review_subtitle">This is what we understood. Nothing is decided yet.</string>
+    <string name="screen_vet_approval_subtitle">Only a veterinarian can approve treatment.</string>
+    <string name="screen_prescription_subtitle">Generated only after veterinary approval.</string>
+    <string name="screen_vet_query_subtitle">Follow-up questions between the vet and the owner.</string>
+    <string name="screen_health_record_subtitle">Full history for this animal.</string>
+
+    <!-- Navigation -->
+    <string name="nav_back">Back</string>
+
+    <!-- Step-1 placeholder copy. Replaced with real UI in later steps. -->
+    <string name="placeholder_step_banner">Step 1 scaffold - screen not built yet</string>
+    <string name="placeholder_planned_heading">Planned for this screen</string>
+
+    <!-- Safety notice shown wherever clinical content is displayed. -->
+    <string name="safety_disclaimer">This app does not diagnose and does not prescribe. A registered veterinarian reviews every case and is the sole prescriber.</string>
+</resources>

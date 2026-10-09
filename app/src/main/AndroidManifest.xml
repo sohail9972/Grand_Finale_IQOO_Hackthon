@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+      =====================================================================
+      PERMISSIONS
+      =====================================================================
+      NOTE: android.permission.INTERNET is deliberately ABSENT. Animal Health
+      Bridge is offline-first: every AI step (ASR, translation, LLM, triage)
+      runs on-device. Without INTERNET the OS itself prevents an accidental
+      cloud call, which is both a privacy guarantee and a judgeable artifact.
+    -->
+
+    <!-- Voice intake: the owner speaks symptoms freely in their language. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Evidence capture: photos and 30s videos answering vet queries. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Tag identification: NFC scan of the animal tag. -->
+    <uses-permission android:name="android.permission.NFC" />
+
+    <!--
+      Media read access. Android 13 (API 33) replaced READ_EXTERNAL_STORAGE with
+      per-type permissions; the legacy permission is capped at API 32 so older
+      devices keep working without requesting a permission that no longer
+      exists on modern devices.
+    -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+
+    <!-- Dose reminders and withdrawal-period alerts. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!--
+      Android 12+ throttles motion sensors to 200 Hz unless the app opts in.
+      Gait-steadiness analysis benefits from the full rate, so we declare it.
+    -->
+    <uses-permission
+        android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!--
+      =====================================================================
+      HARDWARE FEATURES
+      =====================================================================
+      Everything is required="false". The app degrades gracefully: no NFC ->
+      QR -> manual tag entry; no camera -> capture is skipped; no sensors ->
+      quality checks are skipped. Declaring them optional keeps the app
+      installable on low-end and emulated devices.
+    -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+    <uses-feature android:name="android.hardware.nfc" android:required="false" />
+    <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="false" />
+    <uses-feature android:name="android.hardware.sensor.gyroscope" android:required="false" />
+    <uses-feature android:name="android.hardware.sensor.light" android:required="false" />
+    <uses-feature android:name="android.hardware.sensor.proximity" android:required="false" />
+
+    <!--
+      Android 11+ package visibility: without this the offline SpeechRecognizer
+      fallback cannot see the on-device recognition service.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".AnimalHealthBridgeApp"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AnimalHealthBridge"
+        android:enableOnBackInvokedCallback="true"
+        tools:targetApi="34">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.AnimalHealthBridge"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+              NFC tag dispatch. A tag tapped while the app is open is routed
+              straight here, which is faster than the reader-mode polling path.
+            -->
+            <intent-filter>
+                <action android:name="android.nfc.action.TECH_DISCOVERED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.nfc.action.TECH_DISCOVERED"
+                android:resource="@xml/nfc_tech_filter" />
+        </activity>
+    </application>
+</manifest>
