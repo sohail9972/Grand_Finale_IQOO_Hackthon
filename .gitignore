@@ -51,3 +51,21 @@ app/src/main/assets/*.onnx
 .DS_Store
 Thumbs.db
 desktop.ini
+# --- Model files (too large for Git) ---
+models/
+*.onnx
+*.litertlm
+*.gguf
+*.bin
+*.task
+*.tflite
+*.pte
+
+# --- Build artifacts ---
+app/build/
+build/
+*.apk
+*.aab
+
+# --- Local caches ---
+.cache/
