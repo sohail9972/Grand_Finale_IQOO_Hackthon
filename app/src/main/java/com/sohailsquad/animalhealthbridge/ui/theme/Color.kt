@@ -13,18 +13,18 @@ import androidx.compose.ui.graphics.Color
 
 // Surfaces
 internal val AhbBackground = Color(0xFF0E141E)
-internal val AhbCard = Color(0xFF182230)
-internal val AhbCardSecondary = Color(0xFF1F2C3D)
+internal val AhbCard = Color(0xFF161C26)
+internal val AhbCardSecondary = Color(0xFF242A35)
 
 // Accent
 internal val AhbAccent = Color(0xFF1FC8A8)
-internal val AhbAccentLight = Color(0xFF7CE0C8)
+internal val AhbAccentLight = Color(0xFF4DE4C3)
 internal val AhbAccentDeep = Color(0xFF0B7F69)
 
 // Text
-internal val AhbTextPrimary = Color(0xFFFFFFFF)
-internal val AhbTextSecondary = Color(0xFFB8C4D0)
-internal val AhbTextDim = Color(0xFF7A8A9A)
+internal val AhbTextPrimary = Color(0xFFDDE2F1)
+internal val AhbTextSecondary = Color(0xFFBBCAC4)
+internal val AhbTextDim = Color(0xFF85948E)
 
 // Semantic
 internal val AhbWarning = Color(0xFFFFB46B)

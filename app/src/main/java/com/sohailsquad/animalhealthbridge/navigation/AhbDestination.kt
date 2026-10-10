@@ -101,25 +101,27 @@ sealed class AhbDestination(
 
     companion object {
         /** Where the app lands on a cold start. */
-        val START: AhbDestination = LanguageSelect
+        val START: AhbDestination get() = LanguageSelect
 
         /**
          * The 8 destinations, in spec order. Used by the debug screen switcher
          * and by the "next screen" helper so the happy path is data-driven.
          */
-        val ALL: List<AhbDestination> = listOf(
-            LanguageSelect,
-            AnimalId,
-            VoiceIntake,
-            CaseReview,
-            VetApproval,
-            Prescription,
-            VetQuery,
-            HealthRecord,
-        )
+        val ALL: List<AhbDestination> by lazy {
+            listOf(
+                LanguageSelect,
+                AnimalId,
+                VoiceIntake,
+                CaseReview,
+                VetApproval,
+                Prescription,
+                VetQuery,
+                HealthRecord,
+            )
+        }
 
         /** The 7 steps shown in the bottom navigation bar (Prescription excluded). */
-        val STEPS: List<AhbDestination> = ALL - Prescription
+        val STEPS: List<AhbDestination> by lazy { ALL - Prescription }
 
         /**
          * Looks up a destination by route.

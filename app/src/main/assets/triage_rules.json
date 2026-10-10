@@ -1,0 +1,72 @@
+{
+  "rules": [
+    {
+      "id": "R1",
+      "field": "red_flags",
+      "operator": "is_not_empty",
+      "action": "EMERGENCY_NOW",
+      "reason": "Reported red flags require immediate veterinary attention."
+    },
+    {
+      "id": "R2",
+      "field": "severity_indicators",
+      "operator": "contains_any",
+      "values": [
+        "cannot stand",
+        "bleeding heavily",
+        "difficulty breathing",
+        "bloated",
+        "unconscious",
+        "seizure",
+        "extreme pain"
+      ],
+      "action": "EMERGENCY_NOW",
+      "reason": "Reported severe symptoms may indicate an emergency; see a veterinarian now."
+    },
+    {
+      "id": "R3",
+      "field": "duration",
+      "operator": "contains_any",
+      "values": [
+        "week",
+        "weeks",
+        "many days",
+        "long time",
+        "month"
+      ],
+      "action": "SEE_VET_TODAY",
+      "reason": "Symptoms have persisted for an extended period; arrange veterinary review today."
+    },
+    {
+      "id": "R4",
+      "field": "severity_indicators",
+      "operator": "contains_any",
+      "values": [
+        "swelling",
+        "fever",
+        "not eating",
+        "limping",
+        "wound"
+      ],
+      "action": "SEE_VET_TODAY",
+      "reason": "Reported swelling, fever, appetite loss, limping or wounds need veterinary review today."
+    },
+    {
+      "id": "R5",
+      "field": "confidence",
+      "operator": "equals",
+      "values": [
+        "low"
+      ],
+      "action": "SEE_VET_TODAY",
+      "reason": "The extraction has low confidence; a veterinarian should assess the animal today."
+    },
+    {
+      "id": "R6",
+      "field": "default",
+      "operator": "default",
+      "action": "MONITOR",
+      "reason": "No configured urgent indicator matched. Monitor the animal and seek veterinary help if symptoms persist or worsen."
+    }
+  ]
+}

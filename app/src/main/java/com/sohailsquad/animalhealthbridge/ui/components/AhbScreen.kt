@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.HorizontalDivider
@@ -21,6 +23,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -63,7 +66,7 @@ fun AhbScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = { AhbTopBar(destination = destination, onBack = onBack) },
         bottomBar = {
-            Column {
+            Column(Modifier.navigationBarsPadding()) {
                 if (safetyBanner) SafetyNotice()
                 bottomBar()
             }
@@ -86,6 +89,10 @@ private fun AhbTopBar(
     onBack: (() -> Unit)?,
 ) {
     TopAppBar(
+        expandedHeight = with(LocalDensity.current) {
+            maxOf(64.dp, MaterialTheme.typography.titleLarge.lineHeight.toDp() +
+                MaterialTheme.typography.bodySmall.lineHeight.toDp() * 2 + 14.dp)
+        },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.background,
             titleContentColor = MaterialTheme.colorScheme.onBackground,
@@ -120,11 +127,15 @@ private fun AhbTopBar(
                 Text(
                     text = stringResource(destination.subtitleRes),
                     style = MaterialTheme.typography.bodySmall,
-                    color = LocalAhbColors.current.textDim,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        },
+        actions = {
+            AhbStatusBadge("OFFLINE", icon = Icons.Default.CloudOff,
+                modifier = Modifier.padding(end = 12.dp))
         },
     )
 }

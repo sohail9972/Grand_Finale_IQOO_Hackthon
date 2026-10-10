@@ -6,11 +6,30 @@
       =====================================================================
       PERMISSIONS
       =====================================================================
-      NOTE: android.permission.INTERNET is deliberately ABSENT. Animal Health
-      Bridge is offline-first: every AI step (ASR, translation, LLM, triage)
-      runs on-device. Without INTERNET the OS itself prevents an accidental
-      cloud call, which is both a privacy guarantee and a judgeable artifact.
+      Animal Health Bridge is offline-first: every AI step (ASR, translation,
+      LLM, triage) runs on-device. INTERNET is deliberately ABSENT, so the OS
+      itself prevents an accidental cloud call - a privacy guarantee and a
+      judgeable artifact.
+
+      The two removals below exist because transitive dependencies inject
+      permissions we never asked for and never use:
+
+        INTERNET            <- com.google.android.datatransport
+                               (telemetry pulled in by MediaPipe tasks-genai)
+        ACCESS_NETWORK_STATE <- androidx.media3-common (ExoPlayer)
+
+      Both dependencies stay on the classpath (MediaPipe is the documented
+      rollback path for the LLM), but their network permissions are stripped
+      from the merged manifest so airplane mode remains a hard guarantee
+      rather than a convention. tools:node="remove" wins over a library's
+      own <uses-permission>, regardless of merge order.
     -->
+    <uses-permission
+        android:name="android.permission.INTERNET"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_NETWORK_STATE"
+        tools:node="remove" />
 
     <!-- Voice intake: the owner speaks symptoms freely in their language. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
@@ -118,5 +137,12 @@
                 android:name="android.nfc.action.TECH_DISCOVERED"
                 android:resource="@xml/nfc_tech_filter" />
         </activity>
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>

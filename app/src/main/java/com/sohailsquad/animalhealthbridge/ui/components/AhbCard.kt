@@ -59,6 +59,7 @@ fun AhbCard(
         shape = shape,
         color = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurface,
+        border = if (accentBorder) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(
             modifier = Modifier.padding(LocalAhbDimens.current.padding),

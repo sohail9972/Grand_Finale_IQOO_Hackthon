@@ -56,4 +56,6 @@ data class AnimalProfile(
 
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue = "''")
+    val name: String = "",
 )

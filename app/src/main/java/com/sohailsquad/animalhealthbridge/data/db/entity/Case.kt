@@ -67,6 +67,7 @@ import androidx.room.PrimaryKey
         // Every health-record query filters by animal and orders by recency,
         // so a composite index serves both.
         Index(value = ["animal_id", "created_at"]),
+        Index(value = ["draft_key"], unique = true),
     ],
 )
 data class Case(
@@ -127,6 +128,18 @@ data class Case(
 
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(name = "additional_notes", defaultValue = "'not stated'")
+    val additionalNotes: String = "not stated",
+    @ColumnInfo(name = "source_lang", defaultValue = "'hi'")
+    val sourceLang: String = "hi",
+    @ColumnInfo(defaultValue = "'DRAFT'")
+    val status: String = "DRAFT",
+    @ColumnInfo(name = "draft_key")
+    val draftKey: String? = null,
+    @ColumnInfo(name = "processing_complete", defaultValue = "1")
+    val processingComplete: Boolean = true,
+    @ColumnInfo(name = "translation_fallback", defaultValue = "0")
+    val translationFallback: Boolean = false,
 ) {
     companion object {
         /** Fields were extracted by the on-device LLM. */

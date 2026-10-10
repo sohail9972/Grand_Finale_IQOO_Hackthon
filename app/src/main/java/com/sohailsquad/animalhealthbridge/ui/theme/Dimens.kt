@@ -17,7 +17,7 @@ data class AhbDimens(
     /** Standard screen padding. */
     val padding: Dp = 16.dp,
     /** Vertical/horizontal gap between sibling elements. */
-    val gap: Dp = 12.dp,
+    val gap: Dp = 16.dp,
     /** Tighter gap used inside a card. */
     val gapTight: Dp = 8.dp,
     /** Generous gap separating major sections. */
@@ -27,7 +27,7 @@ data class AhbDimens(
     /** Button corner radius. */
     val radiusButton: Dp = 24.dp,
     /** Small chips / badges. */
-    val radiusChip: Dp = 12.dp,
+    val radiusChip: Dp = 24.dp,
     /** Hairline border on outlined surfaces. */
     val borderWidth: Dp = 1.dp,
     /**
@@ -37,7 +37,7 @@ data class AhbDimens(
      */
     val touchTarget: Dp = 48.dp,
     /** Large circular mic button on the voice-intake screen. */
-    val micButton: Dp = 120.dp,
+    val micButton: Dp = 144.dp,
 )
 
 /**

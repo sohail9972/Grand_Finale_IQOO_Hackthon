@@ -17,14 +17,13 @@ import com.sohailsquad.animalhealthbridge.data.db.entity.AnimalProfile
 interface AnimalDao {
 
     /**
-     * Inserts a profile, replacing any existing row with the same tag number.
+     * Inserts a profile without replacing an animal with the same tag number.
      *
-     * REPLACE is what makes "scan the tag, then edit the animal's details"
-     * idempotent instead of throwing on the unique index.
+     * A conflict leaves the existing identity and its clinical history intact.
      *
-     * @return the row id of the inserted profile (or of the replaced row).
+     * @return the inserted row id, or -1 if the tag already exists.
      */
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(profile: AnimalProfile): Long
 
     /**
@@ -55,4 +54,10 @@ interface AnimalDao {
      */
     @Query("SELECT COUNT(*) FROM animal_profiles WHERE tag_number = :tag")
     suspend fun countByTag(tag: String): Int
+    @Query("SELECT * FROM animal_profiles WHERE id = :animalId")
+    suspend fun getById(animalId: Long): AnimalProfile?
+    @Query("SELECT * FROM animal_profiles ORDER BY created_at DESC")
+    fun observeAll(): kotlinx.coroutines.flow.Flow<List<AnimalProfile>>
+    @androidx.room.Update
+    suspend fun update(profile: AnimalProfile)
 }

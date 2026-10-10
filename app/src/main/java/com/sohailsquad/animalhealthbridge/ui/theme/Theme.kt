@@ -3,6 +3,9 @@ package com.sohailsquad.animalhealthbridge.ui.theme
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -43,8 +46,9 @@ private val AhbDarkColorScheme = darkColorScheme(
     onSurfaceVariant = AhbTextSecondary,
     surfaceContainer = AhbCard,
     surfaceContainerHigh = AhbCardSecondary,
-    surfaceContainerLow = AhbBackground,
-    surfaceContainerLowest = AhbBackground,
+    surfaceContainerLow = AhbCard,
+    surfaceContainerLowest = androidx.compose.ui.graphics.Color(0xFF080E18),
+    surfaceContainerHighest = androidx.compose.ui.graphics.Color(0xFF2F3540),
 
     // Error doubles as the EMERGENCY_NOW triage colour.
     error = AhbEmergency,
@@ -96,6 +100,13 @@ fun AnimalHealthBridgeTheme(content: @Composable () -> Unit) {
         MaterialTheme(
             colorScheme = AhbDarkColorScheme,
             typography = AhbTypography,
+            shapes = Shapes(
+                extraSmall = RoundedCornerShape(8.dp),
+                small = RoundedCornerShape(12.dp),
+                medium = RoundedCornerShape(16.dp),
+                large = RoundedCornerShape(24.dp),
+                extraLarge = RoundedCornerShape(28.dp),
+            ),
             content = content,
         )
     }

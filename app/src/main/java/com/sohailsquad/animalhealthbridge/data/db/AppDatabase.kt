@@ -6,8 +6,10 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.sohailsquad.animalhealthbridge.data.db.dao.AnimalDao
 import com.sohailsquad.animalhealthbridge.data.db.dao.CaseDao
+import com.sohailsquad.animalhealthbridge.data.db.dao.TriageLogDao
 import com.sohailsquad.animalhealthbridge.data.db.entity.AnimalProfile
 import com.sohailsquad.animalhealthbridge.data.db.entity.Case
+import com.sohailsquad.animalhealthbridge.data.db.entity.TriageLog
 import com.sohailsquad.animalhealthbridge.ml.translation.TranslationCacheDao
 import com.sohailsquad.animalhealthbridge.ml.translation.TranslationCacheEntry
 
@@ -32,8 +34,14 @@ import com.sohailsquad.animalhealthbridge.ml.translation.TranslationCacheEntry
         AnimalProfile::class,
         Case::class,
         TranslationCacheEntry::class,
+        com.sohailsquad.animalhealthbridge.data.db.entity.TranslationCache::class,
+        com.sohailsquad.animalhealthbridge.data.db.entity.Treatment::class,
+        com.sohailsquad.animalhealthbridge.data.db.entity.VetQuery::class,
+        com.sohailsquad.animalhealthbridge.data.db.entity.Vaccination::class,
+        TriageLog::class,
+        com.sohailsquad.animalhealthbridge.data.db.entity.Evidence::class,
     ],
-    version = 2,
+    version = 3,
     // Schemas are not exported yet; flip to true once migrations need diffing.
     exportSchema = false,
 )
@@ -47,6 +55,12 @@ abstract class AppDatabase : RoomDatabase() {
 
     /** Translation cache. */
     abstract fun translationCacheDao(): TranslationCacheDao
+    abstract fun translationDao(): com.sohailsquad.animalhealthbridge.data.db.dao.TranslationDao
+    abstract fun treatmentDao(): com.sohailsquad.animalhealthbridge.data.db.dao.TreatmentDao
+    abstract fun vetQueryDao(): com.sohailsquad.animalhealthbridge.data.db.dao.VetQueryDao
+    abstract fun vaccinationDao(): com.sohailsquad.animalhealthbridge.data.db.dao.VaccinationDao
+    abstract fun triageLogDao(): TriageLogDao
+    abstract fun evidenceDao(): com.sohailsquad.animalhealthbridge.data.db.dao.EvidenceDao
 
     companion object {
 
@@ -136,7 +150,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     DB_NAME,
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, ClinicalMigration)
                     .build()
                     .also { INSTANCE = it }
             }

@@ -18,7 +18,9 @@ android {
 
     defaultConfig {
         applicationId = "com.sohailsquad.animalhealthbridge"
-        minSdk = 26          // Android 8.0 - covers the widest rural device base
+        // 27, not 26: the GenieX AAR declares <uses-sdk minSdkVersion="27" /> in
+        // its own manifest, so the whole app must be 27+ to link against it.
+        minSdk = 27          // Android 8.1
         targetSdk = 35       // Android 15; the spec targets Android 13+ behaviour
         versionCode = 1
         versionName = "0.1.0-step1"
@@ -75,9 +77,7 @@ android {
             )
         }
         jniLibs {
-            // Keep native libs page-aligned rather than extracted at install
-            // time; MediaPipe and ONNX Runtime both ship large .so files.
-            useLegacyPackaging = false
+            useLegacyPackaging = true
 
             // The sherpa-onnx "static link" AAR is meant to bundle ONNX Runtime
             // internally, and does so correctly for arm64/armeabi-v7a/x86_64.
@@ -161,12 +161,16 @@ dependencies {
     implementation(libs.mediapipe.tasks.genai)
     // ONNX Runtime for IndicTrans2 (Step 4) and IndicConformer ASR (Step 3).
     implementation(libs.onnxruntime.android)
+    // Qualcomm GenieX: Qwen3 inference on the Snapdragon NPU (QAIRT/Hexagon).
+    // Replaces the MediaPipe Gemma-3 path in LlmEngine.
+    implementation(libs.geniex.android)
 
     // --- Camera / media ----------------------------------------------------
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
+    implementation("androidx.camera:camera-video:1.4.0")
     implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)

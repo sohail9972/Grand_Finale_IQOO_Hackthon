@@ -4,7 +4,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.horizontalScroll
@@ -16,10 +20,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.sohailsquad.animalhealthbridge.navigation.AhbDestination
 import com.sohailsquad.animalhealthbridge.ui.theme.LocalAhbDimens
@@ -45,10 +54,11 @@ import com.sohailsquad.animalhealthbridge.ui.theme.LocalAhbColors
 fun AhbStepBar(
     current: AhbDestination,
     modifier: Modifier = Modifier,
-    onStepClick: (AhbDestination) -> Unit = {},
+    onStepClick: ((AhbDestination) -> Unit)? = null,
 ) {
     val steps = AhbDestination.STEPS
-    val currentIndex = steps.indexOf(current).let { if (it < 0) 0 else it }
+    val currentStep = if (current == AhbDestination.Prescription) AhbDestination.VetApproval else current
+    val currentIndex = steps.indexOf(currentStep).let { if (it < 0) 0 else it }
 
     Column(modifier = modifier.fillMaxWidth()) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -73,7 +83,7 @@ fun AhbStepBar(
                     step = step,
                     index = index + 1,
                     state = state,
-                    onClick = { onStepClick(step) },
+                    onClick = onStepClick?.let { callback -> { callback(step) } },
                 )
             }
         }
@@ -93,38 +103,57 @@ private fun StepChip(
     step: AhbDestination,
     index: Int,
     state: StepState,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
 ) {
     val extras = LocalAhbColors.current
     val (container, content) = when (state) {
         StepState.DONE -> MaterialTheme.colorScheme.surface to MaterialTheme.colorScheme.primary
-        StepState.CURRENT -> MaterialTheme.colorScheme.primary to extras.onAccent
+        StepState.CURRENT -> MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) to MaterialTheme.colorScheme.primary
         StepState.UPCOMING -> MaterialTheme.colorScheme.surface to extras.textDim
     }
 
+    val requester = remember { BringIntoViewRequester() }
+    LaunchedEffect(state) { if (state == StepState.CURRENT) requester.bringIntoView() }
+    val label = when (step) {
+        AhbDestination.LanguageSelect -> "Language"
+        AhbDestination.AnimalId -> "Identify"
+        AhbDestination.VoiceIntake -> "Intake"
+        AhbDestination.CaseReview -> "Review"
+        AhbDestination.VetApproval, AhbDestination.Prescription -> "Approval"
+        AhbDestination.VetQuery -> "Questions"
+        AhbDestination.HealthRecord -> "Records"
+    }
     Surface(
-        onClick = onClick,
         shape = RoundedCornerShape(LocalAhbDimens.current.radiusChip),
         color = container,
         contentColor = content,
         // Every chip is a real 48dp-tall target even though it looks compact.
-        modifier = Modifier.height(LocalAhbDimens.current.touchTarget),
+        modifier = Modifier.heightIn(min = 64.dp).widthIn(min = 80.dp).bringIntoViewRequester(requester)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .semantics(mergeDescendants = true) {
+                selected = state == StepState.CURRENT
+                stateDescription = when (state) {
+                    StepState.CURRENT -> "Current step"
+                    StepState.DONE -> "Previous step"
+                    StepState.UPCOMING -> "Upcoming step"
+                }
+            },
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = LocalAhbDimens.current.gapTight),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(
                 imageVector = step.icon,
                 contentDescription = null, // the label below is the accessible name
                 tint = content,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(24.dp),
             )
             Text(
                 // "3 · Describe symptoms" reads as a step, not as a button.
-                text = "$index · ${stringResource(step.titleRes)}",
-                style = MaterialTheme.typography.labelMedium,
+                text = "$index · $label",
+                style = MaterialTheme.typography.labelSmall,
                 color = content,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

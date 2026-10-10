@@ -53,7 +53,7 @@ fun AhbPrimaryButton(
         // A loading button must not fire again: double-tapping "Approve" would
         // otherwise create two treatments for a single case.
         enabled = enabled && !loading,
-        modifier = modifier.defaultMinSize(minHeight = LocalAhbDimens.current.touchTarget),
+        modifier = modifier.defaultMinSize(minHeight = 56.dp),
         shape = RoundedCornerShape(LocalAhbDimens.current.radiusButton),
         contentPadding = PaddingValues(
             horizontal = LocalAhbDimens.current.gapLoose,
@@ -87,7 +87,7 @@ fun AhbSecondaryButton(
     OutlinedButton(
         onClick = onClick,
         enabled = enabled && !loading,
-        modifier = modifier.defaultMinSize(minHeight = LocalAhbDimens.current.touchTarget),
+        modifier = modifier.defaultMinSize(minHeight = 56.dp),
         shape = RoundedCornerShape(LocalAhbDimens.current.radiusButton),
         contentPadding = PaddingValues(
             horizontal = LocalAhbDimens.current.gapLoose,

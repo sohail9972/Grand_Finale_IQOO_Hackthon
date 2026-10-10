@@ -96,4 +96,6 @@ interface CaseDao {
      */
     @Query("DELETE FROM cases WHERE animal_id = :animalId")
     suspend fun deleteForAnimal(animalId: Long): Int
+    @Query("SELECT * FROM cases WHERE draft_key = :key")
+    suspend fun getByDraftKey(key: String): Case?
 }

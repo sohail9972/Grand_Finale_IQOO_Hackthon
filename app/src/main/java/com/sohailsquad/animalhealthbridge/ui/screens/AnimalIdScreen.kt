@@ -13,6 +13,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Pets
+import androidx.compose.ui.graphics.Brush
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.CancellationException
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -55,6 +65,10 @@ import com.sohailsquad.animalhealthbridge.ui.components.AhbPrimaryButtonWide
 import com.sohailsquad.animalhealthbridge.ui.components.AhbScreen
 import com.sohailsquad.animalhealthbridge.ui.components.AhbSecondaryButton
 import com.sohailsquad.animalhealthbridge.ui.components.AhbStepBar
+import com.sohailsquad.animalhealthbridge.ui.components.AhbPrimaryButton
+import com.sohailsquad.animalhealthbridge.ui.components.AhbStatusBadge
+import com.sohailsquad.animalhealthbridge.ui.components.AhbSectionHeading
+import com.sohailsquad.animalhealthbridge.ui.components.AhbSelectableCard
 import com.sohailsquad.animalhealthbridge.ui.theme.LocalAhbColors
 import com.sohailsquad.animalhealthbridge.ui.theme.LocalAhbDimens
 import kotlinx.coroutines.CoroutineScope
@@ -81,23 +95,29 @@ private const val PHASE_ONE_SPECIES = "cattle"
  * twice always resolves to the same animal regardless of which path was used.
  * Every path logs under "AhbAnimal".
  *
- * @param onAnimalResolved called with the resolved tag number.
+ * @param onAnimalResolved called with the stable Room animal id as a string.
  * @param onOpenHistory "View History" shortcut into screen 7.
  * @param onBack back handler.
  * @param modifier layout modifier.
  */
 @Composable
 fun AnimalIdScreen(
-    onAnimalResolved: (tagNumber: String) -> Unit,
+    onAnimalResolved: (animalId: String) -> Unit,
     onOpenHistory: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onCheckBehaviour: ((animalId: String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val repository = context.app().animalRepository
+    val recentAnimals by remember { context.app().database.animalDao().observeAll().catch { failure ->
+        if (failure is CancellationException) throw failure
+        Log.w(TAG, "Recent animals unavailable", failure)
+        emit(emptyList())
+    } }.collectAsStateWithLifecycle(initialValue = emptyList())
 
     var tagNumber by rememberSaveable { mutableStateOf("") }
     var showQrScanner by rememberSaveable { mutableStateOf(false) }
@@ -181,7 +201,6 @@ fun AnimalIdScreen(
         bottomBar = {
             AhbStepBar(
                 current = AhbDestination.AnimalId,
-                onStepClick = { /* Backward jumps land with the health record. */ },
             )
         },
     ) { contentPadding: PaddingValues ->
@@ -189,24 +208,34 @@ fun AnimalIdScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(contentPadding)
+                .consumeWindowInsets(contentPadding)
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(LocalAhbDimens.current.padding),
             verticalArrangement = Arrangement.spacedBy(LocalAhbDimens.current.gap),
         ) {
+            AhbSectionHeading("Identify animal", "NFC, QR or manual entry · All offline", Icons.Default.Pets)
             // --- Primary path: NFC ------------------------------------------
             AhbCard(
-                title = "Scan ear tag",
+                title = "Scan animal tag",
                 subtitle = "Hold the phone against the tag until it beeps.",
             ) {
+                Box(Modifier.align(Alignment.CenterHorizontally).size(180.dp)
+                    .background(Brush.radialGradient(listOf(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.04f))), CircleShape),
+                    contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = Icons.Filled.Nfc,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .size(40.dp),
+                        .size(64.dp),
                 )
-                AhbSecondaryButton(
+                }
+                AhbStatusBadge(if (nfcArmed) "NFC reader active" else if (nfcReader?.isEnabled() == true)
+                    "NFC ready" else "NFC off or unavailable", icon = Icons.Default.Nfc)
+                AhbPrimaryButton(
                     text = if (nfcArmed && !isResolving) "Listening for tag..." else "Start NFC scan",
                     onClick = {
                         val reader = nfcReader
@@ -299,6 +328,20 @@ fun AnimalIdScreen(
                 loading = isResolving,
             )
 
+            onCheckBehaviour?.let { checkBehaviour ->
+                AhbCard(title = "Check Behaviour", subtitle = "Explore observations without a diagnosis.") {
+                    Text("Enter the tag number above, or choose a recent animal below.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    AhbSecondaryButton("Check Behaviour", onClick = {
+                        nfcArmed = false
+                        nfcReader?.stop()
+                        resolveTag(trimmedTag, "behaviour", repository, scope,
+                            { isResolving = it }, checkBehaviour, { errorMessage = it })
+                    }, enabled = canContinue, loading = isResolving, icon = Icons.Default.Pets,
+                        modifier = Modifier.fillMaxWidth())
+                }
+            }
+
             AhbSecondaryButton(
                 text = "View history",
                 onClick = onOpenHistory,
@@ -306,6 +349,26 @@ fun AnimalIdScreen(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isResolving,
             )
+
+            AhbSectionHeading("Recent animals", "${recentAnimals.size} stored on this phone")
+            recentAnimals.take(3).forEach { animal ->
+                AhbSelectableCard(onClick = {
+                    if (!isResolving) resolveTag(animal.tagNumber, "recent", repository, scope,
+                        { isResolving = it }, onAnimalResolved, { errorMessage = it })
+                }, title = animal.name.ifBlank { animal.tagNumber },
+                    subtitle = "#${animal.tagNumber} · ${animal.species}") {
+                    Text("Added ${com.sohailsquad.animalhealthbridge.ui.components.displayDate(animal.createdAt)}",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall)
+                    onCheckBehaviour?.let { checkBehaviour ->
+                        AhbSecondaryButton("Check Behaviour", onClick = {
+                            nfcArmed = false
+                            nfcReader?.stop()
+                            checkBehaviour(animal.id.toString())
+                        }, enabled = !isResolving, modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            }
 
             Text(
                 text = "Animals you scan are saved on this phone and stay " +
@@ -428,7 +491,7 @@ private fun resolveTag(
                 owner = "",
             )
             Log.i(TAG, "Resolved source=$source tag=${profile.tagNumber} id=${profile.id}")
-            onResolved(profile.tagNumber)
+            onResolved(profile.id.toString())
         } catch (t: Throwable) {
             // Catch Throwable, not Exception: a corrupt database file can
             // surface as an Error, and the owner must still get a usable screen.

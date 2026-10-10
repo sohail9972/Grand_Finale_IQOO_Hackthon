@@ -5,7 +5,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
@@ -14,6 +18,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material3.*
+import androidx.compose.ui.unit.dp
+import com.sohailsquad.animalhealthbridge.ui.components.AhbStatusBadge
 import com.sohailsquad.animalhealthbridge.navigation.AhbDestination
 import com.sohailsquad.animalhealthbridge.ui.components.AhbPrimaryButtonWide
 import com.sohailsquad.animalhealthbridge.ui.components.AhbScreen
@@ -84,9 +99,12 @@ fun LanguageSelectScreen(
         onBack = null,
         modifier = modifier,
         bottomBar = {
-            AhbStepBar(
-                current = AhbDestination.LanguageSelect,
-                onStepClick = { /* Step 1 has no completed steps to jump back to. */ },
+            AhbPrimaryButtonWide(
+                text = "Continue",
+                onClick = { selectedCode?.let(onContinue) },
+                enabled = selectedCode != null,
+                icon = Icons.AutoMirrored.Filled.ArrowForward,
+                modifier = Modifier.padding(LocalAhbDimens.current.padding),
             )
         },
     ) { contentPadding: PaddingValues ->
@@ -105,28 +123,42 @@ fun LanguageSelectScreen(
                 horizontalArrangement = Arrangement.spacedBy(LocalAhbDimens.current.gap),
                 verticalArrangement = Arrangement.spacedBy(LocalAhbDimens.current.gap),
             ) {
-                items(items = SUPPORTED_LANGUAGES, key = { it.code }) { language ->
+                item(span = { GridItemSpan(2) }) {
+                    Column(Modifier.fillMaxWidth().padding(vertical = 20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Surface(shape = MaterialTheme.shapes.large,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)) {
+                            Icon(Icons.Default.Pets, null, Modifier.padding(20.dp).size(44.dp),
+                                tint = MaterialTheme.colorScheme.primary)
+                        }
+                        AhbStatusBadge("Offline ready · Local language")
+                        Text("Animal Health Bridge", style = MaterialTheme.typography.displaySmall,
+                            textAlign = TextAlign.Center)
+                        Text("Choose your language / अपनी भाषा चुनें", textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                items(items = SUPPORTED_LANGUAGES, key = { it.code },
+                    span = { GridItemSpan(if (it.code == "en") 2 else 1) }) { language ->
                     AhbSelectableCard(
                         onClick = { selectedCode = language.code },
                         selected = selectedCode == language.code,
-                        title = language.nativeName,
-                        subtitle = language.englishName,
-                    ) {}
+                        modifier = Modifier.semantics { selected = selectedCode == language.code },
+                    ) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(language.nativeName, style = MaterialTheme.typography.headlineMedium,
+                                modifier = Modifier.weight(1f))
+                            if (selectedCode == language.code) Icon(Icons.Default.CheckCircle, "Selected",
+                                tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                        }
+                        Text(language.englishName, style = MaterialTheme.typography.bodyLarge,
+                            color = if (selectedCode == language.code) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
 
-            AhbPrimaryButtonWide(
-                text = "Continue",
-                onClick = { selectedCode?.let(onContinue) },
-                // Disabled until a language is chosen: continuing without one
-                // would leave the ASR step with no model to load.
-                enabled = selectedCode != null,
-                modifier = Modifier.padding(
-                    start = LocalAhbDimens.current.padding,
-                    end = LocalAhbDimens.current.padding,
-                    bottom = LocalAhbDimens.current.padding,
-                ),
-            )
         }
     }
 }

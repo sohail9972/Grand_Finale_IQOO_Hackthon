@@ -33,16 +33,7 @@ import com.sohailsquad.animalhealthbridge.ui.theme.LocalAhbColors
  * Ordering is meaningful: `ordinal` runs from most to least urgent, which lets
  * callers compare severity with `<` / `>` instead of a lookup table.
  */
-enum class TriageLevel {
-    /** Red flags present. The owner must seek veterinary attention immediately. */
-    EMERGENCY_NOW,
-
-    /** Concerning but stable. Should be seen by a vet the same day. */
-    SEE_VET_TODAY,
-
-    /** No red flags found. Observe at home and re-check if anything changes. */
-    MONITOR,
-}
+typealias TriageLevel = com.sohailsquad.animalhealthbridge.triage.TriageLevel
 
 /**
  * Colour + icon + label for a [TriageLevel], resolved from the theme.
@@ -61,18 +52,18 @@ private fun styleFor(level: TriageLevel): TriageStyle {
     val extras = LocalAhbColors.current
     return when (level) {
         TriageLevel.EMERGENCY_NOW -> TriageStyle(
-            container = extras.emergency,
-            content = extras.onEmergency,
+            container = extras.emergency.copy(alpha = 0.18f),
+            content = extras.emergency,
             icon = Icons.Filled.Error,
         )
         TriageLevel.SEE_VET_TODAY -> TriageStyle(
-            container = extras.warning,
-            content = extras.onEmergency, // dark text reads better on amber too
+            container = extras.warning.copy(alpha = 0.18f),
+            content = extras.warning,
             icon = Icons.Filled.Warning,
         )
         TriageLevel.MONITOR -> TriageStyle(
-            container = extras.success,
-            content = extras.onAccent,
+            container = extras.success.copy(alpha = 0.18f),
+            content = extras.success,
             icon = Icons.Filled.CheckCircle,
         )
     }

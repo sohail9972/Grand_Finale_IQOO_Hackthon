@@ -28,6 +28,7 @@ junit = "4.13.2"
 androidxTestJunit = "1.2.1"
 espresso = "3.6.1"
 onnxruntime = "1.20.0"
+geniex = "0.8.0"
 mlkitBarcode = "17.2.0"
 
 [libraries]
@@ -66,6 +67,10 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 mediapipe-tasks-genai = { module = "com.google.mediapipe:tasks-genai", version.ref = "mediapipe" }
 # ONNX Runtime runs IndicTrans2 (translation) and IndicConformer (ASR).
 onnxruntime-android = { module = "com.microsoft.onnxruntime:onnxruntime-android", version.ref = "onnxruntime" }
+# Qualcomm GenieX: runs Qwen3 on the Snapdragon NPU (Hexagon HTP) via the
+# QAIRT runtime. Group id is com.qualcomm.qti but the Kotlin PACKAGE is
+# com.geniex.sdk - see LlmEngine.kt.
+geniex-android = { module = "com.qualcomm.qti:geniex-android", version.ref = "geniex" }
 
 # --- Media / camera -------------------------------------------------------
 androidx-camera-core = { module = "androidx.camera:camera-core", version.ref = "camera" }

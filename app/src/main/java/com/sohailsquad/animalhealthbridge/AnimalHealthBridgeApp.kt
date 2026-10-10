@@ -29,6 +29,10 @@ class AnimalHealthBridgeApp : Application() {
      * the construction cost, and the singleton guarantees one shared connection.
      */
     val database: AppDatabase by lazy { AppDatabase.get(this) }
+    val preferences by lazy { com.sohailsquad.animalhealthbridge.data.UserPreferences(this) }
+    val caseRepository by lazy { com.sohailsquad.animalhealthbridge.data.repository.CaseRepository(this) }
+    val treatmentRepository by lazy { com.sohailsquad.animalhealthbridge.data.repository.TreatmentRepository(this) }
+    val triageEngine by lazy { com.sohailsquad.animalhealthbridge.triage.TriageEngine(this) }
 
     /** The single animal repository for the process. */
     val animalRepository: AnimalRepository by lazy {
