@@ -1,6 +1,7 @@
 package com.sohailsquad.animalhealthbridge.ml.asr
 
 import android.content.Context
+import android.util.Log
 import java.io.File
 
 object AsrConfig {
@@ -10,7 +11,9 @@ object AsrConfig {
 
     fun directory(context: Context, language: String = "kn"): File {
         require(language in LANGUAGE_CODES) { "Unsupported IndicConformer language: $language" }
-        return File(context.getExternalFilesDir(null) ?: context.filesDir, "models/indicconformer/$language")
+        val dir = File(context.filesDir, "models/indicconformer/$language")
+        Log.i("AhbAsr", "ASR dir for $language: ${dir.absolutePath}")
+        return dir
     }
     fun model(context: Context, language: String = "kn") = File(directory(context, language), "model.int8.onnx")
     fun tokens(context: Context, language: String = "kn") = File(directory(context, language), "tokens.txt")

@@ -151,7 +151,7 @@ fun VetQueryScreen(caseId: Long, viewMode: String, onBack: () -> Unit) {
         }
     }
     captureQuery?.let { query ->
-        CaptureDialog(query.queryType == "VIDEO", onCaptured = { uri, mime ->
+        CaptureDialog(query.queryType == "VIDEO", currentCaseId = caseId, onCaptured = { uri, mime ->
             val validated = EvidenceStore(context).validate(uri, mime)
             application.caseRepository.addEvidence(caseId, validated, mime)
             media = media + (query.id to (media[query.id].orEmpty() + validated))

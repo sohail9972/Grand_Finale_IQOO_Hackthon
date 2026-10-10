@@ -99,7 +99,11 @@ class CameraCapture(context: Context) {
         }
     }
 
-    suspend fun recordVideo(maxDurationSec: Int): Uri? = withContext(Dispatchers.Main.immediate) {
+    suspend fun recordVideo(
+        maxDurationSec: Int,
+        onRecordingChanged: (Recording?) -> Unit = {},
+        onStarted: () -> Unit = {},
+    ): Uri? = withContext(Dispatchers.Main.immediate) {
         val camera = video ?: return@withContext null
         if (recording != null) return@withContext null
         var file: File? = null
@@ -107,25 +111,38 @@ class CameraCapture(context: Context) {
             val destination = output(".mp4")
             file = destination
             suspendCancellableCoroutine { continuation ->
-                val timeout = scope.launch {
-                    delay(maxDurationSec.coerceIn(1, 30) * 1000L)
-                    recording?.stop()
-                }
-                recording = camera.output.prepareRecording(context, FileOutputOptions.Builder(destination)
+                var timeout: Job? = null
+                val active = camera.output.prepareRecording(context, FileOutputOptions.Builder(destination)
                     .setFileSizeLimit(50L * 1024 * 1024).build()).start(executor) { event ->
-                    if (event is VideoRecordEvent.Finalize) {
-                        timeout.cancel()
-                        recording?.close()
-                        recording = null
-                        paused = false
-                        val result = if (!event.hasError() && destination.length() > 0) Uri.fromFile(destination) else null
-                        if (result == null || !continuation.isActive) destination.delete()
-                        if (continuation.isActive) continuation.resume(result)
-                        Log.i("AhbCamera", "Video finalized error=${event.error}")
+                    when (event) {
+                        is VideoRecordEvent.Start -> {
+                            runCatching { onStarted() }.onFailure { Log.w("AhbCamera", "Recording UI update failed", it) }
+                        }
+                        is VideoRecordEvent.Finalize -> {
+                            timeout?.cancel()
+                            val uri = event.outputResults.outputUri.takeUnless { it == Uri.EMPTY }
+                                ?: Uri.fromFile(destination)
+                            runCatching { recording?.close() }.onFailure { Log.w("AhbCamera", "Recording cleanup failed", it) }
+                            recording = null
+                            paused = false
+                            runCatching { onRecordingChanged(null) }.onFailure { Log.w("AhbCamera", "Recording UI update failed", it) }
+                            val result = if (!event.hasError() && destination.length() > 0) uri else null
+                            if (result == null || !continuation.isActive) destination.delete()
+                            Log.i("AhbCamera", "Finalized with uri=$uri")
+                            Log.i("AhbCamera", "Video finalized error=${event.error}")
+                            if (continuation.isActive) continuation.resume(result)
+                        }
+                        else -> Unit
                     }
                 }
+                recording = active
+                runCatching { onRecordingChanged(active) }.onFailure { Log.w("AhbCamera", "Recording UI update failed", it) }
+                timeout = scope.launch {
+                    delay(maxDurationSec.coerceIn(1, 30) * 1000L)
+                    runCatching { active.stop() }.onFailure { Log.w("AhbCamera", "Recording timeout stop failed", it) }
+                }
                 continuation.invokeOnCancellation {
-                    executor.execute { runCatching { recording?.stop() } }
+                    executor.execute { runCatching { active.stop() }.onFailure { Log.w("AhbCamera", "Recording cancellation stop failed", it) } }
                 }
                 Log.i("AhbCamera", "Silent video started")
             }

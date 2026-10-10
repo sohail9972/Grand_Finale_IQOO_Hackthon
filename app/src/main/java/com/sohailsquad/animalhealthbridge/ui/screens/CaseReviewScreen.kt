@@ -164,7 +164,7 @@ fun CaseReviewScreen(caseId: Long, onShareWithVet: (Long) -> Unit,
         }
     }
     captureMode?.let { mode ->
-        CaptureDialog(mode == "VIDEO", onCaptured = { uri, mime ->
+        CaptureDialog(mode == "VIDEO", currentCaseId = caseId, onCaptured = { uri, mime ->
             val validated = EvidenceStore(context).validate(uri, mime)
             application.caseRepository.addEvidence(caseId, validated, mime)
         }, onDismiss = { captureMode = null })

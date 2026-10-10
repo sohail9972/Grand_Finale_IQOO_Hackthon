@@ -6,6 +6,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.video.Recording
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -30,7 +31,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.*
 
 @Composable
-fun CaptureDialog(videoMode: Boolean, onCaptured: suspend (Uri, String) -> Unit, onDismiss: () -> Unit) {
+fun CaptureDialog(videoMode: Boolean, onCaptured: suspend (Uri, String) -> Unit,
+    onDismiss: () -> Unit, currentCaseId: Long? = null) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
     val capture = remember { CameraCapture(context) }
@@ -42,6 +44,9 @@ fun CaptureDialog(videoMode: Boolean, onCaptured: suspend (Uri, String) -> Unit,
         Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) }
     var available by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
+    var activeRecording by remember { mutableStateOf<Recording?>(null) }
+    var stopping by remember { mutableStateOf(false) }
+    var captureStatus by remember { mutableStateOf("Capturing...") }
     var error by remember { mutableStateOf<String?>(null) }
     var guidance by remember { mutableStateOf("") }
     val proximity by sensors.proximity.collectAsState()
@@ -92,26 +97,52 @@ fun CaptureDialog(videoMode: Boolean, onCaptured: suspend (Uri, String) -> Unit,
                 if (!granted) Button(onClick = { launcher.launch(Manifest.permission.CAMERA) }) { Text("Allow camera") }
                 if (busy) {
                     CircularProgressIndicator()
-                    Text("Capturing...")
+                    Text(captureStatus)
+                }
+                if (videoMode && activeRecording != null) {
+                    AhbSecondaryButton("Stop recording", enabled = !stopping, onClick = {
+                        Log.i("AhbCamera", "Stop requested by user")
+                        runCatching {
+                            activeRecording?.stop()
+                            stopping = true
+                            captureStatus = "Stopping video..."
+                        }.onFailure {
+                            error = "Could not stop recording. Try again."
+                            Log.w("AhbCamera", "User stop failed", it)
+                        }
+                    }, modifier = Modifier.fillMaxWidth())
                 }
                 AhbPrimaryButtonWide(if (videoMode) "Record video" else "Take photo", loading = busy,
                     enabled = available && !busy, onClick = {
                     scope.launch {
                         busy = true
+                        stopping = false
+                        captureStatus = if (videoMode) "Starting recording..." else "Capturing..."
                         error = null
                         var uri: Uri? = null
                         try {
+                            if (videoMode) require(currentCaseId != null && currentCaseId > 0) {
+                                "Select a saved case before capture."
+                            }
                             require(coach.checkProximity() != "COVERED") { "Uncover the phone before capture." }
-                            uri = if (videoMode) capture.recordVideo(30) else capture.capturePhoto()
+                            uri = if (videoMode) capture.recordVideo(30,
+                                onRecordingChanged = {
+                                    activeRecording = it
+                                    if (it == null) captureStatus = "Saving evidence..."
+                                    else Log.i("AhbCamera", "Recording handle stored: ${activeRecording != null}")
+                                }, onStarted = { if (!stopping) captureStatus = "Recording..." })
+                            else capture.capturePhoto()
                             val captured = requireNotNull(uri) { "Capture failed. Try again or answer in text." }
+                            captureStatus = "Saving evidence..."
                             onCaptured(captured, if (videoMode) "video/mp4" else "image/jpeg")
+                            if (currentCaseId != null) Log.i("AhbCamera", "Evidence inserted for caseId=$currentCaseId")
                             onDismiss()
                         } catch (failure: CancellationException) { throw failure }
                         catch (failure: Throwable) {
                             error = failure.message ?: "Capture failed. Answer in text instead."
                             Log.w("AhbCamera", "Capture/attachment failed", failure)
                             uri?.path?.let { java.io.File(it).delete() }
-                        } finally { busy = false }
+                        } finally { busy = false; stopping = false }
                     }
                 })
                 AhbSecondaryButton("Cancel / use text", onClick = onDismiss, modifier = Modifier.fillMaxWidth())

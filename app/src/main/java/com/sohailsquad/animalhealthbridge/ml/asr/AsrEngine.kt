@@ -16,12 +16,16 @@ import kotlinx.coroutines.sync.Mutex
 
 class AsrEngine(context: Context) {
     private val context = context.applicationContext
+    private val fp32 = Fp32AsrEngine(this.context)
     @Volatile private var listening = false
     @Volatile private var recorder: AudioRecord? = null
     private val mutableStatus = MutableStateFlow("Ready")
     private val captureLock = Mutex()
     val status = mutableStatus.asStateFlow()
-    fun isAvailable(language: String = "kn"): Boolean = runCatching {
+    fun isAvailable(language: String = "kn"): Boolean =
+        language in AsrConfig.LANGUAGE_CODES && (fp32.isAvailable(language) || hasInt8Model(language))
+
+    private fun hasInt8Model(language: String): Boolean = runCatching {
         if (language !in AsrConfig.LANGUAGE_CODES) return@runCatching false
         listOf(AsrConfig.model(context, language), AsrConfig.tokens(context, language)).all {
             it.isFile && it.canRead() && it.length() > 0
@@ -47,39 +51,45 @@ class AsrEngine(context: Context) {
             try {
                 val code = language ?: UserPreferences(context).selectedLanguage()
                 require(code in AsrConfig.LANGUAGE_CODES) { "No IndicConformer model configured for $code." }
-                val modelFile = AsrConfig.model(context, code)
-                val tokensFile = AsrConfig.tokens(context, code)
-                if (!isAvailable(code)) {
-                    mutableStatus.value = "Voice input is not set up on this phone yet. Type the symptoms below - it works exactly the same."
-                    Log.i("AhbAsr", "Missing or unreadable ASR files: model=$modelFile tokens=$tokensFile")
-                    return@withContext Result.failure(IllegalStateException("IndicConformer files unavailable for $code."))
-                }
                 mutableStatus.value = "Loading speech model..."
-                Log.i("AhbAsr", "Loading IndicConformer lang=$code model=$modelFile tokens=$tokensFile")
-                OrtSession.SessionOptions().use { options ->
-                    OrtEnvironment.getEnvironment().createSession(modelFile.path, options).use { probe ->
-                        val metadata = probe.metadata.customMetadata
-                        require(metadata["model_type"] == "nemo_ctc") { "A sherpa-compatible NeMo CTC export is required." }
-                        metadata["language"]?.let { modelLanguage ->
-                            require(modelLanguage.substringBefore('-').equals(code, ignoreCase = true)) {
-                                "This speech model does not support $code."
-                            }
-                        }
-                        metadata["normalize_type"]?.let { normalization ->
-                            require(normalization == "per_feature") { "Expected per_feature normalization in the model export." }
-                        }
-                        Log.i("AhbAsr", "CTC metadata: normalize_type=${metadata["normalize_type"] ?: "not reported"}; export unchanged")
-                    }
-                }
-                Log.i("AhbAsr", "Resolved input language=$code; backend=offline nemo_ctc")
-                recognizer = OfflineRecognizer(config = OfflineRecognizerConfig(
-                    featConfig = FeatureConfig(sampleRate = AsrConfig.SAMPLE_RATE, featureDim = 80),
-                    modelConfig = OfflineModelConfig(nemo = OfflineNemoEncDecCtcModelConfig(
-                        model = modelFile.path), tokens = tokensFile.path,
-                        numThreads = 2, provider = "cpu", modelType = "nemo_ctc")))
+                Log.i("AhbAsr", "Resolving input language=$code; trying FP32 first")
+                val useFp32 = fp32.isAvailable(code) && fp32.load(code)
                 currentCoroutineContext().ensureActive()
                 if (!listening) throw CancellationException("Speech capture stopped during model loading")
-                Log.i("AhbAsr", "IndicConformer loaded lang=$code; model_type=nemo_ctc")
+                if (!useFp32) {
+                    val modelFile = AsrConfig.model(context, code)
+                    val tokensFile = AsrConfig.tokens(context, code)
+                    Log.i("AhbAsr", "FP32 unavailable for $code; checking legacy sherpa INT8")
+                    if (!hasInt8Model(code)) {
+                        mutableStatus.value = "Voice input is not set up on this phone yet. Type the symptoms below - it works exactly the same."
+                        Log.i("AhbAsr", "Missing or unreadable ASR files: model=$modelFile tokens=$tokensFile; AndroidAsr fallback required")
+                        return@withContext Result.failure(IllegalStateException("IndicConformer files unavailable for $code."))
+                    }
+                    Log.i("AhbAsr", "Loading IndicConformer lang=$code model=$modelFile tokens=$tokensFile")
+                    OrtSession.SessionOptions().use { options ->
+                        OrtEnvironment.getEnvironment().createSession(modelFile.path, options).use { probe ->
+                            val metadata = probe.metadata.customMetadata
+                            require(metadata["model_type"] == "nemo_ctc") { "A sherpa-compatible NeMo CTC export is required." }
+                            metadata["language"]?.let { modelLanguage ->
+                                require(modelLanguage.substringBefore('-').equals(code, ignoreCase = true)) {
+                                    "This speech model does not support $code."
+                                }
+                            }
+                            metadata["normalize_type"]?.let { normalization ->
+                                require(normalization == "per_feature") { "Expected per_feature normalization in the model export." }
+                            }
+                            Log.i("AhbAsr", "CTC metadata: normalize_type=${metadata["normalize_type"] ?: "not reported"}; export unchanged")
+                        }
+                    }
+                    recognizer = OfflineRecognizer(config = OfflineRecognizerConfig(
+                        featConfig = FeatureConfig(sampleRate = AsrConfig.SAMPLE_RATE, featureDim = 80),
+                        modelConfig = OfflineModelConfig(nemo = OfflineNemoEncDecCtcModelConfig(
+                            model = modelFile.path), tokens = tokensFile.path,
+                            numThreads = 2, provider = "cpu", modelType = "nemo_ctc")))
+                }
+                currentCoroutineContext().ensureActive()
+                if (!listening) throw CancellationException("Speech capture stopped during model loading")
+                Log.i("AhbAsr", "IndicConformer loaded lang=$code; backend=${if (useFp32) "FP32 ONNX" else "sherpa INT8 nemo_ctc"}")
                 val minimum = AudioRecord.getMinBufferSize(AsrConfig.SAMPLE_RATE,
                     AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
                 require(minimum > 0) { "Microphone unavailable." }
@@ -92,9 +102,9 @@ class AsrEngine(context: Context) {
                 val samples = FloatArray(AsrConfig.SAMPLE_RATE * AsrConfig.MAX_SECONDS)
                 val chunk = ShortArray(2048)
                 var size = 0
-                val asr = requireNotNull(recognizer)
+                val asr = recognizer
                 coroutineScope {
-                    val partialJob = launch(Dispatchers.Default) {
+                    val partialJob = if (asr != null) launch(Dispatchers.Default) {
                         while (isActive && listening) {
                             delay(3000)
                             if (!listening) break
@@ -104,7 +114,7 @@ class AsrEngine(context: Context) {
                                 if (partial.isNotBlank()) withContext(Dispatchers.Main.immediate) { onPartial(partial) }
                             }
                         }
-                    }
+                    } else null
                     try {
                         while (listening && currentCoroutineContext().isActive && size < samples.size) {
                             val count = audio.read(chunk, 0, minOf(chunk.size, samples.size - size))
@@ -121,11 +131,15 @@ class AsrEngine(context: Context) {
                         listening = false
                         runCatching { audio.stop() }
                         mutableStatus.value = "Transcribing..."
-                        withContext(NonCancellable) { partialJob.cancelAndJoin() }
+                        withContext(NonCancellable) { partialJob?.cancelAndJoin() }
                     }
                 }
                 currentCoroutineContext().ensureActive()
-                val final = if (size > 0) decode(recognizer, samples.copyOf(size)) else ""
+                val final = if (size > 0) {
+                    val captured = samples.copyOf(size)
+                    if (useFp32) fp32.transcribe(captured, code) else decode(requireNotNull(recognizer), captured)
+                } else ""
+                currentCoroutineContext().ensureActive()
                 require(final.isNotBlank()) { "No speech recognized by IndicConformer." }
                 withContext(Dispatchers.Main.immediate) { onFinal(final) }
                 mutableStatus.value = "Finished"
@@ -136,7 +150,7 @@ class AsrEngine(context: Context) {
                 throw failure
             } catch (failure: Throwable) {
                 mutableStatus.value = "Voice input unavailable. Type the symptoms instead."
-                Log.w("AhbAsr", "Speech capture unavailable", failure)
+                Log.w("AhbAsr", "Speech capture unavailable; AndroidAsr fallback required", failure)
                 Result.failure(failure)
             } finally {
                 listening = false
@@ -144,6 +158,7 @@ class AsrEngine(context: Context) {
                 runCatching { recorder?.release() }
                 recorder = null
                 runCatching { recognizer?.release() }
+                fp32.release()
                 captureLock.unlock()
             }
         }

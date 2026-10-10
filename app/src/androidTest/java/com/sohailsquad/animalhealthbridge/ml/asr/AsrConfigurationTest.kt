@@ -20,7 +20,7 @@ class AsrConfigurationTest {
     @Test
     fun eachLanguageResolvesItsInt8ModelAndSharedVocabularyFile() {
         assertEquals(setOf("kn", "ta", "te", "ml", "mr", "bn", "gu", "pa"), AsrConfig.LANGUAGE_CODES)
-        val base = context.getExternalFilesDir(null) ?: context.filesDir
+        val base = context.filesDir
         AsrConfig.LANGUAGE_CODES.forEach { language ->
             val directory = File(base, "models/indicconformer/$language")
             assertEquals(File(directory, "model.int8.onnx"), AsrConfig.model(context, language))
@@ -34,6 +34,7 @@ class AsrConfigurationTest {
         val missing = File(context.cacheDir, "missing-asr-${UUID.randomUUID()}")
         val isolated = object : ContextWrapper(context) {
             override fun getApplicationContext(): Context = this
+            override fun getFilesDir(): File = missing
             override fun getExternalFilesDir(type: String?): File = missing
         }
         val engine = AsrEngine(isolated)
