@@ -319,8 +319,15 @@ Output valid JSON only:
 Rules:
 - ONLY extract what was actually said. Do not invent.
 - If not mentioned, use "not stated".
-- Red flags: cannot stand, bleeding, difficulty breathing, bloated,
-  unconscious, seizure, extreme pain, not eating more than 2 days.
+- Red flags (any of these means EMERGENCY):
+    died, dead, not breathing, deceased, unconscious, collapsed,
+    unresponsive, cannot stand, difficulty breathing, gasping,
+    choking, bleeding heavily, bloated, seizure, extreme pain,
+    not eating more than 2 days, multiple animals affected.
+- If the owner says the animal DIED or is DEAD:
+    * chief_complaint MUST be "animal deceased"
+    * red_flags MUST include "animal deceased"
+    * Never treat "died" or "dead" as a symptom.
 - Output ONLY valid JSON. No explanation, no markdown, no code fence."""
 
     /**

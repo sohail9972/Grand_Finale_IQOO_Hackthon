@@ -20,7 +20,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.catch
 
 @Composable
-fun VetApprovalScreen(caseId: Long, onRequestMoreInfo: (Long, String) -> Unit,
+fun VetApprovalScreen(caseId: Long, onRequestMoreInfo: (Long, String, String, String) -> Unit,
     onTreatmentApproved: (Long) -> Unit, onBack: () -> Unit) {
     val application = LocalContext.current.app()
     val scope = rememberCoroutineScope()
@@ -78,6 +78,13 @@ fun VetApprovalScreen(caseId: Long, onRequestMoreInfo: (Long, String) -> Unit,
         val pending = queries.count { it.status == "PENDING" }
         AhbStatusBadge("Pending questions: $pending", tint = if (pending > 0)
             com.sohailsquad.animalhealthbridge.ui.theme.LocalAhbColors.current.warning else MaterialTheme.colorScheme.primary)
+        if (!approved) {
+            AhbSecondaryButton("Request More Info", enabled = case != null && !busy,
+                modifier = Modifier.fillMaxWidth(), onClick = {
+                    Log.i("AhbVet", "Opening vet questions case=$caseId")
+                    onRequestMoreInfo(caseId, "vet", fields[0].trim(), fields[1].trim())
+                })
+        }
         queries.filter { it.status == "ANSWERED" }.forEach {
             Text("Q: ${it.questionTextEnglish}\nA: ${it.answerText}\nMedia: ${it.answerMediaUris}")
         }
@@ -94,8 +101,6 @@ fun VetApprovalScreen(caseId: Long, onRequestMoreInfo: (Long, String) -> Unit,
                     }
                 }
             }
-            AhbSecondaryButton("Request More Info", enabled = case != null && !busy,
-                modifier = Modifier.fillMaxWidth(), onClick = { onRequestMoreInfo(caseId, "VET") })
             AhbPrimaryButtonWide("Approve Treatment", loading = busy, enabled = case != null && pending == 0 && !busy &&
                 listOf(0, 1, 3, 4, 5, 6, 7, 8).all { fields[it].isNotBlank() }, onClick = {
                 scope.launch {

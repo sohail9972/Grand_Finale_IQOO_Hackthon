@@ -22,11 +22,14 @@ class AsrEngine(context: Context) {
     private val mutableStatus = MutableStateFlow("Ready")
     private val captureLock = Mutex()
     val status = mutableStatus.asStateFlow()
-    fun isAvailable(language: String = "kn"): Boolean =
-        language in AsrConfig.LANGUAGE_CODES && (fp32.isAvailable(language) || hasInt8Model(language))
+    fun isAvailable(language: String = "kn"): Boolean = when {
+        language == "en" -> AsrConfig.isMoonshineAvailable(context)
+        language in AsrConfig.LANGUAGE_CODES -> fp32.isAvailable(language) || hasInt8Model(language)
+        else -> false
+    }
 
     private fun hasInt8Model(language: String): Boolean = runCatching {
-        if (language !in AsrConfig.LANGUAGE_CODES) return@runCatching false
+        if (language == "en" || language !in AsrConfig.LANGUAGE_CODES) return@runCatching false
         listOf(AsrConfig.model(context, language), AsrConfig.tokens(context, language)).all {
             it.isFile && it.canRead() && it.length() > 0
         }
@@ -50,13 +53,39 @@ class AsrEngine(context: Context) {
             var recognizer: OfflineRecognizer? = null
             try {
                 val code = language ?: UserPreferences(context).selectedLanguage()
-                require(code in AsrConfig.LANGUAGE_CODES) { "No IndicConformer model configured for $code." }
+                require(code in AsrConfig.LANGUAGE_CODES) { "No on-device speech model configured for $code." }
                 mutableStatus.value = "Loading speech model..."
-                Log.i("AhbAsr", "Resolving input language=$code; trying FP32 first")
-                val useFp32 = fp32.isAvailable(code) && fp32.load(code)
+                Log.i("AhbAsr", "Resolving input language=$code; ${if (code == "en") "using Moonshine English" else "trying FP32 first"}")
+                val useFp32 = code != "en" && fp32.isAvailable(code) && fp32.load(code)
                 currentCoroutineContext().ensureActive()
                 if (!listening) throw CancellationException("Speech capture stopped during model loading")
-                if (!useFp32) {
+                if (code == "en") {
+                    val preprocessFile = AsrConfig.moonshinePreprocess(context)
+                    val encoderFile = AsrConfig.moonshineEncode(context)
+                    val uncachedDecoderFile = AsrConfig.moonshineUncachedDecode(context)
+                    val cachedDecoderFile = AsrConfig.moonshineCachedDecode(context)
+                    val tokensFile = AsrConfig.moonshineTokens(context)
+                    if (!AsrConfig.isMoonshineAvailable(context)) {
+                        mutableStatus.value = "Voice input is not set up on this phone yet. Type the symptoms below - it works exactly the same."
+                        Log.i("AhbAsr", "Missing or unreadable Moonshine files: preprocess=$preprocessFile encoder=$encoderFile uncachedDecoder=$uncachedDecoderFile cachedDecoder=$cachedDecoderFile tokens=$tokensFile; AndroidAsr fallback required")
+                        return@withContext Result.failure(IllegalStateException("Moonshine English files unavailable."))
+                    }
+                    recognizer = OfflineRecognizer(config = OfflineRecognizerConfig(
+                        featConfig = FeatureConfig(sampleRate = AsrConfig.SAMPLE_RATE, featureDim = 80),
+                        modelConfig = OfflineModelConfig(
+                            moonshine = OfflineMoonshineModelConfig(
+                                preprocessor = preprocessFile.path,
+                                encoder = encoderFile.path,
+                                uncachedDecoder = uncachedDecoderFile.path,
+                                cachedDecoder = cachedDecoderFile.path
+                            ),
+                            tokens = tokensFile.path,
+                            numThreads = 2,
+                            provider = "cpu"
+                        )
+                    ))
+                    Log.i("AhbAsr", "Moonshine English loaded")
+                } else if (!useFp32) {
                     val modelFile = AsrConfig.model(context, code)
                     val tokensFile = AsrConfig.tokens(context, code)
                     Log.i("AhbAsr", "FP32 unavailable for $code; checking legacy sherpa INT8")
@@ -89,7 +118,7 @@ class AsrEngine(context: Context) {
                 }
                 currentCoroutineContext().ensureActive()
                 if (!listening) throw CancellationException("Speech capture stopped during model loading")
-                Log.i("AhbAsr", "IndicConformer loaded lang=$code; backend=${if (useFp32) "FP32 ONNX" else "sherpa INT8 nemo_ctc"}")
+                if (code != "en") Log.i("AhbAsr", "IndicConformer loaded lang=$code; backend=${if (useFp32) "FP32 ONNX" else "sherpa INT8 nemo_ctc"}")
                 val minimum = AudioRecord.getMinBufferSize(AsrConfig.SAMPLE_RATE,
                     AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
                 require(minimum > 0) { "Microphone unavailable." }
@@ -140,10 +169,13 @@ class AsrEngine(context: Context) {
                     if (useFp32) fp32.transcribe(captured, code) else decode(requireNotNull(recognizer), captured)
                 } else ""
                 currentCoroutineContext().ensureActive()
-                require(final.isNotBlank()) { "No speech recognized by IndicConformer." }
+                require(final.isNotBlank()) {
+                    if (code == "en") "No speech recognized by Moonshine." else "No speech recognized by IndicConformer."
+                }
                 withContext(Dispatchers.Main.immediate) { onFinal(final) }
                 mutableStatus.value = "Finished"
                 Log.i("AhbAsr", "Capture finished samples=$size characters=${final.length}")
+                if (code == "en") Log.i("AhbAsr", "Moonshine transcription=$final")
                 Result.success(final)
             } catch (failure: CancellationException) {
                 mutableStatus.value = "Ready"

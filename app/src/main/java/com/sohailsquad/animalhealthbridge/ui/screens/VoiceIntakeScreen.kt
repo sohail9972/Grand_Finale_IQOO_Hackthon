@@ -141,8 +141,8 @@ fun VoiceIntakeScreen(animalId: Long, onTranscriptReady: (Long, String) -> Unit,
         AhbCard(title = "Voice input", subtitle = "IndicConformer CTC · System speech fallback") {
             if (recording) CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
             Text(if (usingSherpa) sherpaStatus else status, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (!asr.isAvailable(language) && !androidAsr.isAvailable()) Text("On-device voice input unavailable. Please type the symptoms below.")
-        if (asr.isAvailable(language) || androidAsr.isAvailable()) {
+        if (language in listOf("hi", "kn", "ta", "te", "ml", "mr", "bn", "gu", "pa") ||
+            (language == "en" && asr.isAvailable(language))) {
             Box(Modifier.align(Alignment.CenterHorizontally).size(216.dp)
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), CircleShape),
                 contentAlignment = Alignment.Center) {

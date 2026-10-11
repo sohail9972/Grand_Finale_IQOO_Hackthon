@@ -36,6 +36,9 @@ Rules:
 - Do NOT prescribe. Only suggest consulting a vet if urgent.
 - If duration is a week or more, urgency is at least "medium".
 - If eating/drinking is abnormal, urgency is "high".
+- If the owner says the animal DIED, is DEAD, or is NOT BREATHING,
+  urgency MUST be "high" and advice MUST be "Contact a veterinarian
+  immediately."
 - Output ONLY valid JSON.
 """
 

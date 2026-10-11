@@ -3,6 +3,8 @@ package com.sohailsquad.animalhealthbridge.data.db.dao
 import androidx.room.*
 import com.sohailsquad.animalhealthbridge.data.db.entity.VetQuery
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 @Dao
 interface VetQueryDao {
@@ -13,6 +15,9 @@ interface VetQueryDao {
     suspend fun getById(queryId: Long): VetQuery?
     @Query("SELECT COUNT(*) FROM vet_queries WHERE caseId = :caseId AND status = 'PENDING'")
     suspend fun pendingCount(caseId: Long): Int
+    suspend fun countPendingForCase(caseId: Long): Int = pendingCount(caseId)
     @Query("UPDATE vet_queries SET answerText = :text, answerMediaUris = :media, status = 'ANSWERED', answeredAt = :now WHERE id = :queryId AND status = 'PENDING'")
     suspend fun answer(queryId: Long, text: String, media: String, now: Long): Int
+    suspend fun updateAnswer(id: Long, answerText: String?, answerMediaUri: String?, answeredAt: Long): Int =
+        answer(id, answerText.orEmpty(), Json.encodeToString(listOfNotNull(answerMediaUri)), answeredAt)
 }
