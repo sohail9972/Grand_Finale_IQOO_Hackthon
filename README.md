@@ -175,6 +175,64 @@ The problem statement is grounded in three published studies:
 
 ---
 
+## Generalizable Scope: One Engine, Many Domains
+
+The same architecture — identity → voice intake → on-device AI → triage → expert review → record — applies to any visual + voice diagnostic workflow in agriculture.
+
+### Plant Health: The Same Pipeline
+
+| Animal Health Bridge | Crop Health Bridge |
+|---|---|
+| NFC/QR animal tag | QR plot identifier |
+| Owner speaks symptoms | Farmer speaks symptoms |
+| Qwen3-1.7B extracts case fields | Qwen3-1.7B extracts disease fields |
+| Triage rules for urgency | Triage rules for severity |
+| Vet reviews case | Agronomist reviews case |
+| Photo of wound | Photo of affected leaf |
+| Prescription for animal | Treatment plan for crop |
+| Longitudinal health record | Field history over seasons |
+
+**Nothing changes in the architecture.** The LLM, ASR, triage engine, and offline guarantee are all domain-agnostic. Only the prompt and rules JSON change.
+
+### On-Device Crop Disease Detection Is Already Proven
+
+| Study | Method | Accuracy | Deployment |
+|---|---|---|---|
+| Corn disease classification (IEEE, 2025) | Lightweight CNN (3 conv layers) | **95.76%** | Explicitly designed for offline mobile |
+| Banana disease framework (IEEE, 2025) | Flutter + TensorFlow Lite | Ensemble CNN | Offline on mobile, field-tested |
+| Tomato leaf detection (Zenodo, 2025) | Lightweight CNN | 96–99% (survey) | Edge AI for resource-limited areas |
+| Fungal disease detection (IEEE, 2025) | Custom multi-layer CNN | **94.8%** | Real-time field deployment |
+
+**The plant-health literature confirms what the animal-health stack already proves:** small, on-device models achieve high accuracy for visual disease diagnosis in resource-limited settings.
+
+### Why the Architecture Transfers
+
+| Component | Domain-Agnostic? | Change Required for Crops |
+|---|---|---|
+| Speech recognition (10 languages) | ✅ Yes | None — farmers speak the same languages |
+| LLM (Qwen3-1.7B on NPU) | ✅ Yes | Swap the system prompt |
+| Rules triage engine | ✅ Yes | Swap the rules JSON |
+| Camera + guided capture | ✅ Yes | Same coaching logic, different targets |
+| Offline guarantee | ✅ Yes | None — no INTERNET either way |
+| Longitudinal record | ✅ Yes | Plot ID instead of animal tag |
+
+**One offline engine. Any farmer. Any language. Any crop.**
+
+### Plant Health Evidence Base
+
+These studies prove the same on-device architecture — camera + local inference — already works for crop disease diagnosis:
+
+1. **Analyzing the Effectiveness of Transfer Learning and Custom CNN Approaches in Corn Disease Classification.** *IEEE Xplore*, 2025. — A lightweight CNN with only three convolutional layers achieved **95.76% accuracy** on corn leaf disease classification. The paper explicitly states this compact design is "perfect for offline use on mobile devices or edge devices in resource-limited rural areas."
+
+2. **Ensemble CNN Architecture with Multi-Modal Disease Detection for Sustainable Banana Crop Management: An Integrated Mobile Framework.** *IEEE Xplore*, 2025. — A hybrid solution combining **Flutter + TensorFlow Lite** allowed **offline disease diagnosis** on mobile. Field testing showed "remarkable reduction in diagnosis time" compared to traditional methods. The paper explicitly states it is "especially helpful to farmers in areas with poor internet access and low means."
+
+3. **A Lightweight Convolutional Neural Network for Real-time Tomato Leaf Disease Detection.** *Zenodo*, 2025. — Reviews multiple studies showing **96–99% accuracy** for mobile-based plant disease detection. Identifies a gap in "computationally lightweight systems that deliver reliable performance under real-world conditions" — exactly what the Animal Health Bridge architecture addresses.
+
+4. **Convolutional Neural Network-based Early Detection and Classification of Fungal Diseases in Crop Leaves.** *IEEE Xplore*, 2025. — A CNN pipeline achieved **94.8% accuracy** and was "designed for lightweight deployment, thereby permitting real-time inference and scalable field integration."
+
+**The plant-health literature confirms what the animal-health stack already proves:** small, on-device models achieve high accuracy for visual disease diagnosis in resource-limited settings — with no cloud dependency.
+
+
 ## Setup
 
 ### 1. Clone the repo
