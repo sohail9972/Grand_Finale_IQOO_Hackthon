@@ -155,7 +155,8 @@ fun BehaviourCheckScreen(model: BehaviourViewModel, onAnalyse: () -> Unit, onBac
             OutlinedTextField(value = description, onValueChange = model::setDescription,
                 label = { Text("What is the pet doing?") }, enabled = !busy,
                 modifier = Modifier.fillMaxWidth(), minLines = 3, shape = MaterialTheme.shapes.large)
-            if (asr.isAvailable(language) || androidAsr.isAvailable()) {
+            if (language in listOf("hi", "kn", "ta", "te", "ml", "mr", "bn", "gu", "pa") ||
+                (language == "en" && asr.isAvailable(language))) {
                 AhbSecondaryButton(if (recording) "Stop speaking" else "Speak", onClick = {
                     if (recording) {
                         if (usingSherpa) {
@@ -170,8 +171,7 @@ fun BehaviourCheckScreen(model: BehaviourViewModel, onAnalyse: () -> Unit, onBac
                 Text(if (usingSherpa) sherpaStatus else speechStatus, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (recording) CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
-            } else Text("On-device voice input unavailable. Please type the observations.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
         AhbCard(title = "How long has this been happening?") {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -189,11 +189,20 @@ fun BehaviourCheckScreen(model: BehaviourViewModel, onAnalyse: () -> Unit, onBac
                 }
             }
         }
-        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        AhbPrimaryButtonWide("Analyse Behaviour", onClick = onAnalyse,
-            enabled = description.isNotBlank() && duration.isNotBlank() && !busy)
-        Text("First-pass analysis. Not a diagnosis. Consult a vet if persistent.",
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        AhbPrimaryButtonWide(
+            text = "Analyse Behaviour",
+            onClick = onAnalyse,
+            enabled = description.isNotBlank() && duration.isNotBlank() && !busy
+        )
+        if (!(description.isNotBlank() && duration.isNotBlank() && !busy)) {
+            Text(
+                text = "Enter a description and select a duration to continue",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp, start = 4.dp)
+            )
+        }
     }
 }
 

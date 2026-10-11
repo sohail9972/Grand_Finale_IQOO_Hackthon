@@ -69,3 +69,37 @@ build/
 
 # --- Local caches ---
 .cache/
+
+# --- Large binaries (never commit) ---
+*.hprof
+*.apk
+*.aab
+gallery.apk
+app_logs.txt
+codex_context.txt
+.env
+
+# --- Models (download separately) ---
+models/
+*.onnx
+*.litertlm
+*.gguf
+*.bin
+*.task
+*.tflite
+*.pte
+
+# --- Build artifacts ---
+app/build/
+build/
+.gradle/
+.kotlin/
+.idea/
+
+# --- Local config ---
+local.properties
+
+# --- Test scratch ---
+test/
+pet_frame*.jpg
+test_video.mp4

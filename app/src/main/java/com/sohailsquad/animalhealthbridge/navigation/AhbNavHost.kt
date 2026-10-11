@@ -104,15 +104,22 @@ fun AhbNavHost(modifier: Modifier = Modifier) {
         }
         composable("vet_approval/{caseId}", arguments = listOf(longArgument("caseId"))) { entry ->
             VetApprovalScreen(entry.identifier("caseId"),
-                onRequestMoreInfo = { caseId, mode -> navigate("vet_query/$caseId/$mode") },
+                onRequestMoreInfo = { caseId, mode, vetName, vetId ->
+                    navigate("vet_query/$caseId/$mode?vetName=${Uri.encode(vetName)}&vetId=${Uri.encode(vetId)}")
+                },
                 onTreatmentApproved = { navigate("prescription/$it") }, onBack = back)
         }
         composable("prescription/{caseId}", arguments = listOf(longArgument("caseId"))) { entry ->
             PrescriptionScreen(entry.identifier("caseId"), onSaveToRecord = { navigate("health_record/$it") }, onBack = back)
         }
-        composable("vet_query/{caseId}/{viewMode}", arguments = listOf(longArgument("caseId"),
-            navArgument("viewMode") { type = NavType.StringType; defaultValue = "OWNER" })) { entry ->
-            VetQueryScreen(entry.identifier("caseId"), entry.arguments?.getString("viewMode") ?: "OWNER", back)
+        composable("vet_query/{caseId}/{viewMode}?vetName={vetName}&vetId={vetId}",
+            arguments = listOf(longArgument("caseId"),
+                navArgument("viewMode") { type = NavType.StringType; defaultValue = "owner" },
+                navArgument("vetName") { type = NavType.StringType; defaultValue = "" },
+                navArgument("vetId") { type = NavType.StringType; defaultValue = "" })) { entry ->
+            VetQueryScreen(entry.identifier("caseId"), entry.arguments?.getString("viewMode") ?: "owner", back,
+                initialVetName = entry.arguments?.getString("vetName").orEmpty(),
+                initialVetId = entry.arguments?.getString("vetId").orEmpty())
         }
         composable("health_record/{animalId}", arguments = listOf(longArgument("animalId"))) { entry ->
             HealthRecordScreen(entry.identifier("animalId"), onOpenAnimal = { navigate("health_record/$it") },
